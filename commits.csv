@@ -1,0 +1,16 @@
+hash|author|email|date|subject
+70b11eb01c798668e22412d6c502bfe6ffa7d648|author1|author1@some-host.de|2024-04-27 22:03:00 +0200|aufgabe erledigt
+3f5a09e18e1dbad49d66d56e7d240aa58231bd23|author1|author1@some-host.de|2024-04-27 21:24:26 +0200|Neu test hinzufügen
+cd51af5c249e5caf566125d259993708749a8041|author1|author1@some-host.de|2024-04-27 21:13:15 +0200|Test erleidigt
+82df923daf14d26464326a1e5e47c2c1c4971e48|author1|author1@some-host.de|2024-04-26 23:02:46 +0200|getDurchschnitt methode erledigt
+29ed4423ba152aad966ab0de26e7e9227d9289a4|author1|author1@some-host.de|2024-04-26 22:53:14 +0200|getmax, getmin, erldigt
+5222bcb7bd634c99bf9cbf67d1a011b8dc89c0d3|author1|author1@some-host.de|2024-04-26 22:41:51 +0200|Change Doc for Function
+3b5a3d716d28af025365cd581ffa297a952cb65d|author1|author1@some-host.de|2024-04-26 22:40:01 +0200|getTrend Methode erldigt
+7dbd751066f07b03a9e49f94b7857f5031568c6e|author1|author1@some-host.de|2024-04-26 22:21:37 +0200|Methode registriere erledigt
+3981925b1b184218ac34518d0994527ac06cd164|author1|author1@some-host.de|2024-04-26 22:16:05 +0200|Aufgabe1 Fertig
+cb486de55d7566ca5da96220372dfff16d1a4467|author1|author1@some-host.de|2024-04-24 23:16:23 +0200|install erledigt
+d1b8b58630f97569d3a0be8c94c0f5596ed4fd64|author1|author1@some-host.de|2024-04-24 17:22:59 +0200|Methode registriere fertig
+a9903b61112b81622f2b982998d1243a91a04606|author1|author1@some-host.de|2024-04-24 14:16:25 +0200|Methode getLetzteNote fertig
+aabd5889b20f4d86d3a20eb217c94685e910cbfb|Jens von Pilgrim|jens.vonpilgrim@bht-berlin.de|2024-04-19 18:39:54 +0200|updated settings
+09ec1454401173ce7549abf67955b83d0f6fa2d8|Jens von Pilgrim|jens.vonpilgrim@bht-berlin.de|2024-03-30 18:27:29 +0100|gitlab-ci: bumbed node to 20
+74c7b1ebdabddd9397819d148def800754cae574|Jens von Pilgrim|jens.vonpilgrim@bht-berlin.de|2024-03-30 16:33:35 +0100|initital version

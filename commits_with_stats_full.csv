@@ -1,0 +1,60 @@
+COMMIT:70b11eb01c798668e22412d6c502bfe6ffa7d648
+5	6	src/Notenspiegel.ts
+6	1	tests/Notenspiegel.test.ts
+
+COMMIT:3f5a09e18e1dbad49d66d56e7d240aa58231bd23
+32	7	src/Notenspiegel.ts
+5	0	tests/Notenspiegel.test.ts
+
+COMMIT:cd51af5c249e5caf566125d259993708749a8041
+3	3	src/Notenspiegel.ts
+67	0	tests/Notenspiegel.test.ts
+
+COMMIT:82df923daf14d26464326a1e5e47c2c1c4971e48
+55	51	src/Notenspiegel.ts
+
+COMMIT:29ed4423ba152aad966ab0de26e7e9227d9289a4
+8	6	src/Notenspiegel.ts
+
+COMMIT:5222bcb7bd634c99bf9cbf67d1a011b8dc89c0d3
+4	11	src/Notenspiegel.ts
+
+COMMIT:3b5a3d716d28af025365cd581ffa297a952cb65d
+32	5	src/Notenspiegel.ts
+
+COMMIT:7dbd751066f07b03a9e49f94b7857f5031568c6e
+5	8	src/Notenspiegel.ts
+
+COMMIT:3981925b1b184218ac34518d0994527ac06cd164
+2	2	src/Notenspiegel.ts
+
+COMMIT:cb486de55d7566ca5da96220372dfff16d1a4467
+2	0	src/Notenspiegel.ts
+
+COMMIT:d1b8b58630f97569d3a0be8c94c0f5596ed4fd64
+12	2	src/Notenspiegel.ts
+
+COMMIT:a9903b61112b81622f2b982998d1243a91a04606
+164	158	package-lock.json
+43	5	src/Notenspiegel.ts
+
+COMMIT:aabd5889b20f4d86d3a20eb217c94685e910cbfb
+10	8	.vscode/settings.json
+
+COMMIT:09ec1454401173ce7549abf67955b83d0f6fa2d8
+1	1	.gitlab-ci.yml
+
+COMMIT:74c7b1ebdabddd9397819d148def800754cae574
+21	0	.gitignore
+20	0	.gitlab-ci.yml
+18	0	.vscode/settings.json
+30	0	README.md
+14	0	jest.config.js
+-	-	logo.jpg
+8134	0	package-lock.json
+25	0	package.json
+14	0	src/Notenspiegel.ts
+44	0	tests/Notenspiegel.test.ts
+70	0	tests/formalities.test.ts
+7	0	tests/tsconfig.json
+104	0	tsconfig.json
