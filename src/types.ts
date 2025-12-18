@@ -20,12 +20,12 @@ export type Commit = {
   subject: string;
 };
 
-export type CommitWithDiff = Commit & {
-  day: string;
-  time: string;
-  diffHours: number;
-  diffMinutes: number;
-} & Stats & {
+export type CommitWithDiff = Commit &
+  Stats & {
+    day: string;
+    time: string;
+    diffHours: number;
+    diffMinutes: number;
     changesPerHour: number;
     changesPerMinute: number;
   };

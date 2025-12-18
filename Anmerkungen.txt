@@ -1,0 +1,1 @@
+- Bei Insertions es ist wichtig whitespaces zu erkennen und nicht zu berücksichtigen, weil es kann zu Verwirrungen führen, da eine 

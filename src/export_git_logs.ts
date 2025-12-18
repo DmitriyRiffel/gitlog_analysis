@@ -130,9 +130,17 @@ async function getGitLogs(repoDir: string): Promise<boolean> {
   await fs.writeFile(commitsPath, commitsCsv, { encoding: "utf8" });
 
   const numstats = await runGit(
-    ["log", "--pretty=format:COMMIT:%H", "--numstat"],
+    [
+      "log",
+      "--pretty=format:COMMIT:%H",
+      "--numstat",
+      "-p",
+      "--unified=0",
+      "--no-color",
+    ],
     repoDir
   );
+
   if (numstats.code !== 0) {
     console.warn(`git log --numstats failed in ${repoDir}\n${numstats.stderr}`);
     return false;
