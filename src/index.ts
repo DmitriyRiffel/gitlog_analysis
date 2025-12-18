@@ -88,7 +88,7 @@ function parseFileStatLine(line: string): FileStatRow | null {
 /** Read per-file stats and skip CSV header row */
 const statsLines = readLines("commits_with_stats.csv")
   .slice(1)
-  .filter((f) => !f.includes("json"));
+  .filter((f) => !f.includes("json") && !f.includes("tests"));
 console.log(statsLines);
 /** Aggregate stats per commit hash */
 const statsByHash = new Map<string, Stats>();

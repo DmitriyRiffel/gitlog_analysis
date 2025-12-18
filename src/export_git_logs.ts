@@ -32,16 +32,38 @@ function countAddedLines(diffText: string): number {
   for (const line of diffText.split("\n")) {
     if (!line.startsWith("+")) continue;
 
+    // Ignore header
     if (line.startsWith("+++")) continue;
 
     const content = line.slice(1);
 
+    // Whitespace-only ignorieren
     if (content.trim().length === 0) continue;
 
     insertions++;
   }
 
   return insertions;
+}
+
+function countRemovedLines(diffText: string): number {
+  let deletions = 0;
+
+  for (const line of diffText.split("\n")) {
+    if (!line.startsWith("-")) continue;
+
+    // Ignore header
+    if (line.startsWith("---")) continue;
+
+    const content = line.slice(1);
+
+    // Whitespace-only ignorieren
+    if (content.trim().length === 0) continue;
+
+    deletions++;
+  }
+
+  return deletions;
 }
 
 async function getFileDiff(
@@ -156,7 +178,9 @@ async function getGitLogs(repoDir: string): Promise<boolean> {
 
   for (const { hash, file, deletions } of pairs) {
     const diff = await getFileDiff(repoDir, hash, file);
-    rows.push(`${hash}|${file}|${countAddedLines(diff)}|${deletions}`);
+    rows.push(
+      `${hash}|${file}|${countAddedLines(diff)}|${countRemovedLines(diff)}`
+    );
   }
 
   const cleanPath = path.join(repoDir, "commits_with_stats.csv");
