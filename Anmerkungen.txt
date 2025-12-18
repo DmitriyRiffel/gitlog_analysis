@@ -1,1 +1,2 @@
 - Tests Dateien sollen eher nicht berücksichtigt werden, da man in diesen Dateien viel copy & pasten kann
+- Bei Berücksichtigung des Zeitunterschiedes innerhalb von einem Tag ist maximaler zulässiger Unterschied ca. 5 Stunden.
