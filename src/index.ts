@@ -1,6 +1,5 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { spawn } from "node:child_process";
 import { Commit, CommitWithDiff, Stats, ZERO_STATS } from "./types";
 
 async function existsDir(p: string): Promise<boolean> {
@@ -46,6 +45,10 @@ type FileStatRow = {
   insertions: number;
   deletions: number;
 };
+
+let amountOfCommits: number[] = [];
+let sum = 0;
+let allCommits: CommitWithDiff[] = [];
 
 async function createCSV(repo: string) {
   /**
@@ -251,6 +254,33 @@ async function createCSV(repo: string) {
       changes_hour: Number(c.changesPerHour.toFixed(2)),
     }))
   );
+
+  amountOfCommits.push(commitsWithDiff.length);
+  sum += commitsWithDiff.length;
+  allCommits = commitsWithDiff;
+}
+
+function median(values: number[]) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+
+  if (sorted.length % 2 !== 0) {
+    return sorted[mid];
+  }
+
+  return (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+function mad(values: number[]): number {
+  const med = median(values);
+
+  const deviations = values.map((v) => Math.abs(v - med));
+
+  return median(deviations);
+}
+
+function lowerMadThreshold(median: number, mad: number, k: number = 2): number {
+  return median - k * mad;
 }
 
 async function main() {
@@ -262,6 +292,14 @@ async function main() {
   for (const repo of repoDirs) {
     await createCSV(repo);
   }
+
+  console.log("Anzahl von commits: ", amountOfCommits);
+  console.log("Sum: ", sum);
+
+  const med = median(amountOfCommits);
+  const madVal = mad(amountOfCommits);
+
+  console.log("threshold: ", lowerMadThreshold(med, madVal));
 }
 
 main();

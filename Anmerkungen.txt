@@ -1,2 +1,3 @@
 - Tests Dateien sollen eher nicht berücksichtigt werden, da man in diesen Dateien viel copy & pasten kann
 - Bei Berücksichtigung des Zeitunterschiedes innerhalb von einem Tag ist maximaler zulässiger Unterschied ca. 5 Stunden.
+- Beim ersten Probieren ergab die Analyse mittels Median und einseitiger MAD-Grenze keine signifikanten Ausreißer mit ungewöhnlich geringer Commit-Aktivität
