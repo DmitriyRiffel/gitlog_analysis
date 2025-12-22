@@ -31,3 +31,29 @@ export type CommitWithDiff = Commit &
   };
 
 export type RunResult = { stdout: string; stderr: string; code: number };
+
+export type AuthorAggregation = {
+  author: string;
+  commitCount: number;
+
+  firstCommitAt: Date;
+  firstCommitHash: string;
+
+  lastCommitAt: Date;
+
+  totalInsertions: number;
+  totalDeletions: number;
+  totalChanges: number;
+};
+
+export type CriteriaRow = {
+  author: string;
+  tooLittleCommits: "ja" | "nein";
+  firstCommitDay: string;
+  firstCommitTime: string;
+  firstCommitHash?: string;
+  lastCommitDay?: string;
+  commitCount: number;
+  totalChanges: number;
+  firstCommitAtDeadline: "ja" | "nein";
+};

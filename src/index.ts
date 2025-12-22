@@ -1,6 +1,13 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { Commit, CommitWithDiff, Stats, ZERO_STATS } from "./types";
+import {
+  AuthorAggregation,
+  Commit,
+  CommitWithDiff,
+  CriteriaRow,
+  Stats,
+  ZERO_STATS,
+} from "./types";
 
 async function existsDir(p: string): Promise<boolean> {
   try {
@@ -48,7 +55,26 @@ type FileStatRow = {
 
 let amountOfCommits: number[] = [];
 let sum = 0;
-let allCommits: CommitWithDiff[] = [];
+
+const authorAggregation = new Map<string, AuthorAggregation>();
+
+function getOrCreateAuthor(author: string): AuthorAggregation {
+  const existing = authorAggregation.get(author);
+  if (existing) return existing;
+
+  const fresh: AuthorAggregation = {
+    author,
+    commitCount: 0,
+    firstCommitAt: new Date(),
+    firstCommitHash: "",
+    lastCommitAt: new Date(),
+    totalInsertions: 0,
+    totalDeletions: 0,
+    totalChanges: 0,
+  };
+  authorAggregation.set(author, fresh);
+  return fresh;
+}
 
 async function createCSV(repo: string) {
   /**
@@ -255,9 +281,26 @@ async function createCSV(repo: string) {
     }))
   );
 
+  for (const c of commitsWithDiff) {
+    const a = getOrCreateAuthor(c.author);
+
+    a.commitCount += 1;
+    a.totalInsertions += c.insertions;
+    a.totalDeletions += c.deletions;
+    a.totalChanges += c.totalChanges;
+
+    if (!a.firstCommitAt || c.date < a.firstCommitAt) {
+      a.firstCommitAt = c.date;
+      a.firstCommitHash = c.hash;
+    }
+
+    if (!a.lastCommitAt || c.date > a.lastCommitAt) {
+      a.lastCommitAt = c.date;
+    }
+  }
+
   amountOfCommits.push(commitsWithDiff.length);
   sum += commitsWithDiff.length;
-  allCommits = commitsWithDiff;
 }
 
 function median(values: number[]) {
@@ -298,8 +341,41 @@ async function main() {
 
   const med = median(amountOfCommits);
   const madVal = mad(amountOfCommits);
-
   console.log("threshold: ", lowerMadThreshold(med, madVal));
+
+  const deadline = new Date("2024-04-28");
+  deadline.setHours(20, 0, 0);
+  const deadlineDay = deadline.toLocaleDateString("sv-SE");
+  const rows: CriteriaRow[] = [...authorAggregation.values()].map((a) => ({
+    author: a.author,
+    commitCount: a.commitCount,
+    totalChanges: a.totalChanges,
+    tooLittleCommits:
+      a.commitCount <= lowerMadThreshold(med, madVal, 2) ? "ja" : "nein",
+    firstCommitDay: a.firstCommitAt.toLocaleDateString("sv-SE"),
+    firstCommitTime: a.firstCommitAt?.toLocaleTimeString("de-DE", {
+      hour12: false,
+    }),
+    lastCommitDay: a.lastCommitAt?.toLocaleDateString("sv-SE"),
+    firstCommitAtDeadline:
+      a.firstCommitAt?.toLocaleDateString("sv-SE") === deadlineDay
+        ? "ja"
+        : "nein",
+  }));
+
+  console.table(
+    rows.map((r) => ({
+      author: r.author,
+      commits_count: r.commitCount,
+      total_changes: r.totalChanges,
+      first_commit_date: r.firstCommitDay,
+      first_commit_time: r.firstCommitTime,
+      first_commit_at_deadline_day: r.firstCommitAtDeadline,
+      too_little_commits: r.tooLittleCommits,
+      too_late_first_commit:
+        r.firstCommitTime > deadline.getHours().toString() ? "ja" : "nein",
+    }))
+  );
 }
 
 main();
