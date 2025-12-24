@@ -1,9 +1,4 @@
-export type FileStatRow = {
-  hash: string;
-  file: string;
-  insertions: number;
-  deletions: number;
-};
+import { FileStatRow, Pair } from "./types";
 
 /**
  * Splits one commit line by "|" into:
@@ -46,4 +41,26 @@ export function parseFileStatLine(line: string): FileStatRow | null {
   if (!Number.isFinite(insertions) || !Number.isFinite(deletions)) return null;
 
   return { hash, file, insertions, deletions };
+}
+
+export function parseNumstat(text: string): Pair[] {
+  const pairs: Pair[] = [];
+  let currentHash: string | null = null;
+
+  for (const line of text.split("\n")) {
+    if (line.startsWith("COMMIT:")) {
+      currentHash = line.slice("COMMIT:".length).trim();
+      continue;
+    }
+    if (!line.trim() || !currentHash) continue;
+
+    const parts = line.split("\t");
+    if (parts.length < 3) continue;
+    const delStr = parts[1];
+    const file = parts.slice(2).join("\t").trim();
+    const deletions = delStr === "-" ? 0 : Number(delStr);
+    if (file) pairs.push({ hash: currentHash, file, deletions });
+  }
+
+  return pairs;
 }

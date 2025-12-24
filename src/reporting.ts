@@ -55,6 +55,7 @@ export function printCriteriaTable(rows: CriteriaRow[]) {
       commits_count: r.commitCount,
       total_changes: r.totalChanges,
       first_commit_date: r.firstCommitDay,
+      last_commit_date: r.lastCommitDay,
       first_commit_time: r.firstCommitTime,
       first_commit_at_deadline_day: r.firstCommitAtDeadline,
       too_little_commits: r.tooLittleCommits,

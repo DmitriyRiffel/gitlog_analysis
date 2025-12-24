@@ -12,13 +12,17 @@ export function createCSV(repo: string): Commit[] {
   /** Read commit metadata lines and skip CSV header row */
   const commitLines = readLines(repo + "/commits.csv").slice(1);
 
+  /** ToDo: Remove later on. Only for development */
+  const subdir = repo.split("\\");
+  const submission = subdir.find((s) => s.startsWith("submission_"));
+
   /** Parse commits, filter out a specific author, convert date to Date object, and sort chronologically */
   return commitLines
     .map(splitCommitLinePipe)
     .filter((p) => p[1] !== "Jens von Pilgrim")
     .map((p) => ({
       hash: p[0].trim(),
-      author: p[1].trim(),
+      author: p[1].trim() + " " + submission,
       email: p[2].trim(),
       date: new Date(p[3]),
       subject: p[4].trim(),
@@ -136,7 +140,7 @@ export function buildCommitsWithDiff(
     };
   });
 
-  return rows.filter((c) => c.totalChanges > 0);
+  return rows.filter((r) => r.totalChanges > 0);
 }
 
 export function aggregateAuthors(
@@ -151,9 +155,9 @@ export function aggregateAuthors(
     const fresh: AuthorAggregation = {
       author,
       commitCount: 0,
-      firstCommitAt: new Date(),
+      firstCommitAt: new Date(8640000000000000),
       firstCommitHash: "",
-      lastCommitAt: new Date(),
+      lastCommitAt: new Date(0),
       totalInsertions: 0,
       totalDeletions: 0,
       totalChanges: 0,

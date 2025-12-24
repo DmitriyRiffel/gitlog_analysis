@@ -57,3 +57,12 @@ export type CriteriaRow = {
   totalChanges: number;
   firstCommitAtDeadline: "ja" | "nein";
 };
+
+export type FileStatRow = {
+  hash: string;
+  file: string;
+  insertions: number;
+  deletions: number;
+};
+
+export type Pair = { hash: string; file: string; deletions: number };

@@ -2,69 +2,8 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { spawn } from "node:child_process";
 import { RunResult } from "./types";
-
-type Pair = { hash: string; file: string; deletions: number };
-
-function parseNumstat(text: string): Pair[] {
-  const pairs: Pair[] = [];
-  let currentHash: string | null = null;
-
-  for (const line of text.split("\n")) {
-    if (line.startsWith("COMMIT:")) {
-      currentHash = line.slice("COMMIT:".length).trim();
-      continue;
-    }
-    if (!line.trim() || !currentHash) continue;
-
-    const parts = line.split("\t");
-    if (parts.length < 3) continue;
-    const delStr = parts[1];
-    const file = parts.slice(2).join("\t").trim();
-    const deletions = delStr === "-" ? 0 : Number(delStr);
-    if (file) pairs.push({ hash: currentHash, file, deletions });
-  }
-
-  return pairs;
-}
-
-function countAddedLines(diffText: string): number {
-  let insertions = 0;
-  for (const line of diffText.split("\n")) {
-    if (!line.startsWith("+")) continue;
-
-    // Ignore header
-    if (line.startsWith("+++")) continue;
-
-    const content = line.slice(1);
-
-    // Whitespace-only ignorieren
-    if (content.trim().length === 0) continue;
-
-    insertions++;
-  }
-
-  return insertions;
-}
-
-function countRemovedLines(diffText: string): number {
-  let deletions = 0;
-
-  for (const line of diffText.split("\n")) {
-    if (!line.startsWith("-")) continue;
-
-    // Ignore header
-    if (line.startsWith("---")) continue;
-
-    const content = line.slice(1);
-
-    // Whitespace-only ignorieren
-    if (content.trim().length === 0) continue;
-
-    deletions++;
-  }
-
-  return deletions;
-}
+import { countAddedLines, countRemovedLines } from "./git_logs";
+import { parseNumstat } from "./parsers";
 
 async function getFileDiff(
   repoDir: string,
