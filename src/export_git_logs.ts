@@ -10,7 +10,10 @@ async function getFileDiff(
   hash: string,
   file: string
 ): Promise<string> {
-  const res = await runGit(["show", hash, "--unified=0", "--", file], repoDir);
+  const res = await runGit(
+    ["show", hash, "--unified=0", "--ignore-all-space", "--", file],
+    repoDir
+  );
   if (res.code !== 0) return "";
   return res.stdout;
 }

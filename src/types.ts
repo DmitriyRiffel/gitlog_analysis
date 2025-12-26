@@ -49,6 +49,7 @@ export type AuthorAggregation = {
 export type CriteriaRow = {
   author: string;
   tooLittleCommits: "ja" | "nein";
+  tooLittleChanges: "ja" | "nein";
   firstCommitDay: string;
   firstCommitTime: string;
   firstCommitHash?: string;

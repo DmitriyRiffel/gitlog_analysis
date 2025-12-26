@@ -1,3 +1,15 @@
 - Tests Dateien sollen eher nicht berücksichtigt werden, da man in diesen Dateien viel copy & pasten kann
 - Bei Berücksichtigung des Zeitunterschiedes innerhalb von einem Tag ist maximaler zulässiger Unterschied ca. 5 Stunden.
 - Beim ersten Probieren ergab die Analyse mittels Median und einseitiger MAD-Grenze keine signifikanten Ausreißer mit ungewöhnlich geringer Commit-Aktivität
+- So ein fall wird (noch) nicht berücksichtigt:
+  /** 
+  getDurschnitt(): number {
+    if (this.letzteNote === null || this.aktuelleNote === null) {
+      throw new TypeError("arghhhh");
+    }
+  }
+*/
+-  │ 'f735bcb46e6272453ec8b55551b03885e0c159f8' │ 'author17 submission_1950936' │ 'registriere zweite umgesetzt'           │ '2024-04-27' │ '20:11:55' │ 1     │ 6   │ 0   │ 6     │ 0.022      │ 1.35         │ 266.67   :
+  in diesem Fall ist die Berechnung von der changes_hour (266.67) sieht bisschen verwirrend aus, und irgendwie verdächlich, aber im Endeffekt da sind nur 6 Änderungen innerhalb von 1.35 Minuten
+- so ein Kommentar wird noch als Änderung mitgezählt: return Math.min(...this.noten); // niedrigste note
+- Bei einem Repo tauchen manchmal 2 verschiedenen Autoren. Ich gehen davon aus, dass es ein Student bloß an 2 verschiedenen Rechnern gearbeitet hat. 

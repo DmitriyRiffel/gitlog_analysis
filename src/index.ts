@@ -50,14 +50,56 @@ async function main() {
     printCommitsTable(commitsWithDiff);
   }
 
-  const med = median(commitCountsPerRepo);
-  const madVal = mad(commitCountsPerRepo);
-  const threshold = lowerMadThreshold(med, madVal, 2);
+  const medianCommitCounts = median(commitCountsPerRepo);
+  const madCommitCounts = mad(commitCountsPerRepo);
+  const thresholdCommitCounts = lowerMadThreshold(
+    medianCommitCounts,
+    madCommitCounts,
+    2
+  );
 
+  const authorTotalChanges = Array.from(globalAuthors.values()).map(
+    (a) => a.totalChanges
+  );
+
+  const medianTotalChanges = median(authorTotalChanges);
+  const madTotalChanges = mad(authorTotalChanges);
+  const thresholdTotalChanges = lowerMadThreshold(
+    medianTotalChanges,
+    madTotalChanges,
+    2
+  );
+  let count: number = 0;
+  for (const changes of authorTotalChanges) {
+    count += changes;
+  }
   console.log("Anzahl von commits: ", commitCountsPerRepo);
-  console.log("Median:", med, "MAD:", madVal, "threshold:", threshold);
+  console.log(
+    "Median:",
+    medianCommitCounts,
+    "MAD:",
+    madCommitCounts,
+    "threshold:",
+    thresholdCommitCounts
+  );
+  console.log(
+    "TotalChanges per Autor:",
+    authorTotalChanges,
+    "Median:",
+    medianTotalChanges,
+    "MAD:",
+    madTotalChanges,
+    "LowerThreshold:",
+    thresholdTotalChanges,
+    "Mittelwert:",
+    count / authorTotalChanges.length
+  );
 
-  const criteriaRows = buildCriteriaRows(globalAuthors, threshold);
+  const criteriaRows = buildCriteriaRows(
+    globalAuthors,
+    thresholdCommitCounts,
+    count / authorTotalChanges.length
+  );
   printCriteriaTable(criteriaRows);
 }
 

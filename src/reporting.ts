@@ -21,7 +21,8 @@ export function printCommitsTable(commits: CommitWithDiff[]) {
 
 export function buildCriteriaRows(
   authors: Map<string, AuthorAggregation>,
-  tooLittleCommitThreshold: number
+  tooLittleCommitThreshold: number,
+  tooLittleChangesThreshold: number
 ): CriteriaRow[] {
   const deadline = new Date("2024-04-28T23:59:00");
   const deadlineDay = deadline.toLocaleDateString("sv-SE");
@@ -38,6 +39,8 @@ export function buildCriteriaRows(
       totalChanges: a.totalChanges,
       tooLittleCommits:
         a.commitCount <= tooLittleCommitThreshold ? "ja" : "nein",
+      tooLittleChanges:
+        a.totalChanges <= tooLittleChangesThreshold ? "ja" : "nein",
       firstCommitDay: firstDay,
       firstCommitTime: firstTime,
       lastCommitDay: a.lastCommitAt.toLocaleDateString("sv-SE"),
@@ -59,6 +62,7 @@ export function printCriteriaTable(rows: CriteriaRow[]) {
       first_commit_time: r.firstCommitTime,
       first_commit_at_deadline_day: r.firstCommitAtDeadline,
       too_little_commits: r.tooLittleCommits,
+      too_little_changes: r.tooLittleChanges,
       too_late_first_commit:
         r.firstCommitTime > deadline.toLocaleTimeString() ? "ja" : "nein",
     }))
