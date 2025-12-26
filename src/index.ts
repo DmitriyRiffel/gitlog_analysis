@@ -67,7 +67,7 @@ async function main() {
   const thresholdTotalChanges = lowerMadThreshold(
     medianTotalChanges,
     madTotalChanges,
-    2
+    1.5
   );
   let count: number = 0;
   for (const changes of authorTotalChanges) {
@@ -98,7 +98,7 @@ async function main() {
   const criteriaRows = buildCriteriaRows(
     globalAuthors,
     thresholdCommitCounts,
-    count / authorTotalChanges.length
+    thresholdTotalChanges
   );
   printCriteriaTable(criteriaRows);
 }

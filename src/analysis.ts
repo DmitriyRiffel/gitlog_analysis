@@ -14,20 +14,47 @@ export function createCSV(repo: string): Commit[] {
 
   /** ToDo: Remove later on. Only for development */
   const subdir = repo.split("\\");
-  const submission = subdir.find((s) => s.startsWith("submission_"));
+  const submission = subdir.find((s) => s.startsWith("submission_")) ?? "";
 
-  /** Parse commits, filter out a specific author, convert date to Date object, and sort chronologically */
-  return commitLines
+  const parsed = commitLines
     .map(splitCommitLinePipe)
     .filter((p) => p[1] !== "Jens von Pilgrim")
     .map((p) => ({
       hash: p[0].trim(),
-      author: p[1].trim() + " " + submission,
+      rawAuthor: p[1].trim(),
       email: p[2].trim(),
       date: new Date(p[3]),
       subject: p[4].trim(),
     }))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  const uniqueAuthors = Array.from(
+    new Set(parsed.map((c) => c.rawAuthor).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+
+  const mergedAuthorName =
+    uniqueAuthors.join(" - ") + (submission ? ` ${submission}` : "");
+
+  return parsed.map((c) => ({
+    hash: c.hash,
+    author: mergedAuthorName,
+    email: c.email,
+    date: c.date,
+    subject: c.subject,
+  }));
+
+  /** Parse commits, filter out a specific author, convert date to Date object, and sort chronologically */
+  // return commitLines
+  //   .map(splitCommitLinePipe)
+  //   .filter((p) => p[1] !== "Jens von Pilgrim")
+  //   .map((p) => ({
+  //     hash: p[0].trim(),
+  //     author: p[1].trim() + " " + submission,
+  //     email: p[2].trim(),
+  //     date: new Date(p[3]),
+  //     subject: p[4].trim(),
+  //   }))
+  //   .sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
 export function buildStatsByHash(repo: string): Map<string, Stats> {
