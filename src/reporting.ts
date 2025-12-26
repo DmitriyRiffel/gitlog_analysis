@@ -22,14 +22,14 @@ export function printCommitsTable(commits: CommitWithDiff[]) {
 export function buildCriteriaRows(
   authors: Map<string, AuthorAggregation>,
   tooLittleCommitThreshold: number,
-  tooLittleChangesThreshold: number
+  tooLittleChangesThreshold: number,
+  deadline = new Date("2024-04-28T23:59:00")
 ): CriteriaRow[] {
-  const deadline = new Date("2024-04-28T23:59:00");
   const deadlineDay = deadline.toLocaleDateString("sv-SE");
 
   return [...authors.values()].map((a) => {
-    const firstDay = a.firstCommitAt.toLocaleDateString("sv-SE");
-    const firstTime = a.firstCommitAt.toLocaleTimeString("de-DE", {
+    const firstDay = a.firstCommitDate.toLocaleDateString("sv-SE");
+    const firstTime = a.firstCommitDate.toLocaleTimeString("de-DE", {
       hour12: false,
     });
 
@@ -37,34 +37,70 @@ export function buildCriteriaRows(
       author: a.author,
       commitCount: a.commitCount,
       totalChanges: a.totalChanges,
-      tooLittleCommits:
-        a.commitCount <= tooLittleCommitThreshold ? "ja" : "nein",
-      tooLittleChanges:
-        a.totalChanges <= tooLittleChangesThreshold ? "ja" : "nein",
+      tooLittleCommits: a.commitCount <= tooLittleCommitThreshold,
+      tooLittleChanges: a.totalChanges <= tooLittleChangesThreshold,
+      firstCommitDate: a.firstCommitDate,
       firstCommitDay: firstDay,
       firstCommitTime: firstTime,
       lastCommitDay: a.lastCommitAt.toLocaleDateString("sv-SE"),
-      firstCommitAtDeadline: firstDay === deadlineDay ? "ja" : "nein",
+      firstCommitAtDeadline: firstDay === deadlineDay,
     };
   });
 }
 
-export function printCriteriaTable(rows: CriteriaRow[]) {
-  /**ToDo: improve the calculation of too_late_first_commit */
-  const deadline = new Date("2024-04-28T20:00:00");
+export function printCriteriaTable(
+  rows: CriteriaRow[],
+  deadline = new Date("2024-04-28T23:59:00"),
+  plannedHours = 6
+) {
+  const latestStart = new Date(
+    deadline.getTime() - plannedHours * 60 * 60 * 1000
+  ).toLocaleString("de-DE");
   console.table(
-    rows.map((r) => ({
-      author: r.author,
-      commits_count: r.commitCount,
-      total_changes: r.totalChanges,
-      first_commit_date: r.firstCommitDay,
-      last_commit_date: r.lastCommitDay,
-      first_commit_time: r.firstCommitTime,
-      first_commit_at_deadline_day: r.firstCommitAtDeadline,
-      too_little_commits: r.tooLittleCommits,
-      too_little_changes: r.tooLittleChanges,
-      too_late_first_commit:
-        r.firstCommitTime > deadline.toLocaleTimeString() ? "ja" : "nein",
+    rows.map((row) => ({
+      author: row.author,
+      commits_count: row.commitCount,
+      total_changes: row.totalChanges,
+      first_commit_date: row.firstCommitDay,
+      first_commit_time: row.firstCommitTime,
+      last_commit_date: row.lastCommitDay,
+      first_commit_at_deadline_day: row.firstCommitAtDeadline ? "ja" : "nein",
+      too_little_commits: row.tooLittleCommits ? "ja" : "nein",
+      too_little_changes: row.tooLittleChanges ? "ja" : "nein",
+      too_late_first_commit: isTooLateFirstCommit(
+        row.firstCommitDate,
+        deadline,
+        plannedHours
+      )
+        ? "ja"
+        : "nein",
+      index: calculateIndex(row, deadline, plannedHours),
     }))
   );
+}
+
+function calculateIndex(
+  row: CriteriaRow,
+  deadline = new Date("2024-04-28T23:59:00"),
+  plannedHours = 6
+): number {
+  let index: number = 0;
+  if (row.firstCommitAtDeadline) index += 0.1;
+  if (row.tooLittleChanges) index += 0.1;
+  if (row.tooLittleCommits) index += 0.1;
+  if (isTooLateFirstCommit(row.firstCommitDate, deadline, plannedHours))
+    index += 0.1;
+  return Number(index.toFixed(1));
+}
+
+function subtractHours(d: Date, hours: number): Date {
+  return new Date(d.getTime() - hours * 60 * 60 * 1000);
+}
+
+function isTooLateFirstCommit(
+  firstCommitAt: Date,
+  deadline: Date,
+  plannedHours: number
+): boolean {
+  return firstCommitAt > subtractHours(deadline, plannedHours);
 }

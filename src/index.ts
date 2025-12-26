@@ -23,8 +23,8 @@ function mergeAuthorMaps(
     prev.totalDeletions += agg.totalDeletions;
     prev.totalChanges += agg.totalChanges;
 
-    if (agg.firstCommitAt < prev.firstCommitAt) {
-      prev.firstCommitAt = agg.firstCommitAt;
+    if (agg.firstCommitDate < prev.firstCommitDate) {
+      prev.firstCommitDate = agg.firstCommitDate;
       prev.firstCommitHash = agg.firstCommitHash;
     }
     if (agg.lastCommitAt > prev.lastCommitAt) {

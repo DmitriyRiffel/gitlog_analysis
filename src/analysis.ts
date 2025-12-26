@@ -182,7 +182,7 @@ export function aggregateAuthors(
     const fresh: AuthorAggregation = {
       author,
       commitCount: 0,
-      firstCommitAt: new Date(8640000000000000),
+      firstCommitDate: new Date(8640000000000000),
       firstCommitHash: "",
       lastCommitAt: new Date(0),
       totalInsertions: 0,
@@ -201,8 +201,8 @@ export function aggregateAuthors(
     a.totalDeletions += c.deletions;
     a.totalChanges += c.totalChanges;
 
-    if (!a.firstCommitAt || c.date < a.firstCommitAt) {
-      a.firstCommitAt = c.date;
+    if (!a.firstCommitDate || c.date < a.firstCommitDate) {
+      a.firstCommitDate = c.date;
       a.firstCommitHash = c.hash;
     }
 

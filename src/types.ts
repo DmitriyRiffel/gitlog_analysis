@@ -36,7 +36,7 @@ export type AuthorAggregation = {
   author: string;
   commitCount: number;
 
-  firstCommitAt: Date;
+  firstCommitDate: Date;
   firstCommitHash: string;
 
   lastCommitAt: Date;
@@ -48,15 +48,16 @@ export type AuthorAggregation = {
 
 export type CriteriaRow = {
   author: string;
-  tooLittleCommits: "ja" | "nein";
-  tooLittleChanges: "ja" | "nein";
+  tooLittleCommits: boolean;
+  tooLittleChanges: boolean;
+  firstCommitDate: Date;
   firstCommitDay: string;
   firstCommitTime: string;
   firstCommitHash?: string;
   lastCommitDay?: string;
   commitCount: number;
   totalChanges: number;
-  firstCommitAtDeadline: "ja" | "nein";
+  firstCommitAtDeadline: boolean;
 };
 
 export type FileStatRow = {
