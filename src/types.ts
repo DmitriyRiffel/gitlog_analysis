@@ -44,6 +44,8 @@ export type AuthorAggregation = {
   totalInsertions: number;
   totalDeletions: number;
   totalChanges: number;
+
+  sessions: Session[];
 };
 
 export type CriteriaRow = {
@@ -57,6 +59,8 @@ export type CriteriaRow = {
   lastCommitDay?: string;
   commitCount: number;
   totalChanges: number;
+  totalSessions: number;
+  averageChangesPerHour: number;
   firstCommitAtDeadline: boolean;
 };
 
@@ -68,3 +72,13 @@ export type FileStatRow = {
 };
 
 export type Pair = { hash: string; file: string; deletions: number };
+
+export type Session = Stats & {
+  author: string;
+  sessionIndex: number;
+  startDate: Date;
+  endDate: Date;
+  durationMinutes: number;
+  commitCount: number;
+  changesPerHour?: number;
+};

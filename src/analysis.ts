@@ -3,6 +3,7 @@ import {
   AuthorAggregation,
   Commit,
   CommitWithDiff,
+  Session,
   Stats,
   ZERO_STATS,
 } from "./types";
@@ -14,7 +15,8 @@ export function createCSV(repo: string): Commit[] {
 
   /** ToDo: Remove later on. Only for development */
   const subdir = repo.split("\\");
-  const submission = subdir.find((s) => s.startsWith("submission_")) ?? "";
+  const submission =
+    subdir.find((session) => session.startsWith("submission_")) ?? "";
 
   const parsed = commitLines
     .map(splitCommitLinePipe)
@@ -29,18 +31,18 @@ export function createCSV(repo: string): Commit[] {
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
   const uniqueAuthors = Array.from(
-    new Set(parsed.map((c) => c.rawAuthor).filter(Boolean))
+    new Set(parsed.map((commit) => commit.rawAuthor).filter(Boolean))
   ).sort((a, b) => a.localeCompare(b));
 
   const mergedAuthorName =
     uniqueAuthors.join(" - ") + (submission ? ` ${submission}` : "");
 
-  return parsed.map((c) => ({
-    hash: c.hash,
+  return parsed.map((commit) => ({
+    hash: commit.hash,
     author: mergedAuthorName,
-    email: c.email,
-    date: c.date,
-    subject: c.subject,
+    email: commit.email,
+    date: commit.date,
+    subject: commit.subject,
   }));
 
   /** Parse commits, filter out a specific author, convert date to Date object, and sort chronologically */
@@ -105,19 +107,19 @@ export function buildCommitsWithDiff(
   commits: Commit[],
   statsByHash: Map<string, Stats>
 ): CommitWithDiff[] {
-  const rows = commits.map((c, i) => {
+  const rows = commits.map((commit, i) => {
     // "sv-SE" gives YYYY-MM-DD reliably for locale date strings
-    const day = c.date.toLocaleDateString("sv-SE");
+    const day = commit.date.toLocaleDateString("sv-SE");
     // 24h time formatting
-    const time = c.date.toLocaleTimeString("de-DE", { hour12: false });
+    const time = commit.date.toLocaleTimeString("de-DE", { hour12: false });
 
     // Look up aggregated stats; default to zeros if missing
-    const stats = statsByHash.get(c.hash) ?? ZERO_STATS;
+    const stats = statsByHash.get(commit.hash) ?? ZERO_STATS;
 
     // First commit: no previous diff
     if (i === 0) {
       return {
-        ...c,
+        ...commit,
         day,
         time,
         diffHours: 0,
@@ -134,7 +136,7 @@ export function buildCommitsWithDiff(
     // If the commit is on a new day, reset the diff to 0
     if (day !== prevDay) {
       return {
-        ...c,
+        ...commit,
         day,
         time,
         diffHours: 0,
@@ -146,7 +148,7 @@ export function buildCommitsWithDiff(
     }
 
     // Same day: compute time difference vs previous commit
-    const diffMs = c.date.getTime() - prev.date.getTime();
+    const diffMs = commit.date.getTime() - prev.date.getTime();
     const diffHours = diffMs / (1000 * 60 * 60);
     const diffMinutes = diffHours * 60;
 
@@ -156,7 +158,7 @@ export function buildCommitsWithDiff(
       diffMinutes !== 0 ? stats.totalChanges / diffMinutes : 0;
 
     return {
-      ...c,
+      ...commit,
       day,
       time,
       diffHours,
@@ -171,9 +173,11 @@ export function buildCommitsWithDiff(
 }
 
 export function aggregateAuthors(
-  commits: CommitWithDiff[]
+  commits: CommitWithDiff[],
+  sessions: Session[]
 ): Map<string, AuthorAggregation> {
   const map = new Map<string, AuthorAggregation>();
+  const sessionsByAuthor = aggregateSessionsByAuthor(sessions);
 
   function getOrCreate(author: string): AuthorAggregation {
     const existing = map.get(author);
@@ -188,26 +192,27 @@ export function aggregateAuthors(
       totalInsertions: 0,
       totalDeletions: 0,
       totalChanges: 0,
+      sessions: sessionsByAuthor.get(author) ?? [],
     };
     map.set(author, fresh);
     return fresh;
   }
 
-  for (const c of commits) {
-    const a = getOrCreate(c.author);
+  for (const commit of commits) {
+    const a = getOrCreate(commit.author);
 
     a.commitCount += 1;
-    a.totalInsertions += c.insertions;
-    a.totalDeletions += c.deletions;
-    a.totalChanges += c.totalChanges;
+    a.totalInsertions += commit.insertions;
+    a.totalDeletions += commit.deletions;
+    a.totalChanges += commit.totalChanges;
 
-    if (!a.firstCommitDate || c.date < a.firstCommitDate) {
-      a.firstCommitDate = c.date;
-      a.firstCommitHash = c.hash;
+    if (!a.firstCommitDate || commit.date < a.firstCommitDate) {
+      a.firstCommitDate = commit.date;
+      a.firstCommitHash = commit.hash;
     }
 
-    if (!a.lastCommitAt || c.date > a.lastCommitAt) {
-      a.lastCommitAt = c.date;
+    if (!a.lastCommitAt || commit.date > a.lastCommitAt) {
+      a.lastCommitAt = commit.date;
     }
   }
   return map;
@@ -244,6 +249,101 @@ export function analyzeRepo(repo: string) {
   const commits = createCSV(repo);
   const statsByHash = buildStatsByHash(repo);
   const commitsWithDiff = buildCommitsWithDiff(commits, statsByHash);
-  const authors = aggregateAuthors(commitsWithDiff);
-  return { commitsWithDiff, authors };
+  const sessions = buildSessions(commitsWithDiff, 120);
+  const authors = aggregateAuthors(commitsWithDiff, sessions);
+  return { commitsWithDiff, sessions, authors };
+}
+
+function buildSessions(
+  commits: CommitWithDiff[],
+  maxGapMinutes: number
+): Session[] {
+  if (commits.length === 0) return [];
+
+  const sessions: Session[] = [];
+  let sessionIndex = 1;
+
+  let current: Session = newSession(commits[0], sessionIndex);
+
+  for (let i = 0; i < commits.length; i++) {
+    const c = commits[i];
+    if (i === 0) {
+      addCommit(current, c);
+      continue;
+    }
+
+    const gap = c.diffMinutes;
+    const isBreak = gap <= 0 || gap > maxGapMinutes;
+
+    if (isBreak) {
+      finalizeSession(current);
+      sessions.push(current);
+
+      sessionIndex++;
+      current = newSession(c, sessionIndex);
+    }
+
+    addCommit(current, c);
+  }
+
+  finalizeSession(current);
+  sessions.push(current);
+
+  return sessions;
+}
+
+function newSession(commit: CommitWithDiff, index: number): Session {
+  return {
+    author: commit.author,
+    sessionIndex: index,
+    startDate: commit.date,
+    endDate: commit.date,
+    durationMinutes: 0,
+    commitCount: 0,
+    filesChanged: 0,
+    insertions: 0,
+    deletions: 0,
+    totalChanges: 0,
+  };
+}
+
+function addCommit(session: Session, commit: CommitWithDiff) {
+  session.endDate = commit.date;
+  session.commitCount += 1;
+
+  session.filesChanged += commit.filesChanged;
+  session.insertions += commit.insertions;
+  session.deletions += commit.deletions;
+  session.totalChanges += commit.totalChanges;
+}
+
+function finalizeSession(session: Session) {
+  const duration =
+    (session.endDate.getTime() - session.startDate.getTime()) / (1000 * 60);
+
+  session.durationMinutes = Number(Math.max(0, duration).toFixed(1));
+
+  if (session.durationMinutes > 0) {
+    session.changesPerHour =
+      session.totalChanges / (session.durationMinutes / 60);
+  } else {
+    session.changesPerHour = 0;
+  }
+}
+
+function aggregateSessionsByAuthor(
+  sessions: Session[]
+): Map<string, Session[]> {
+  const map = new Map<string, Session[]>();
+
+  for (const s of sessions) {
+    const arr = map.get(s.author);
+    if (arr) {
+      arr.push(s);
+    } else {
+      map.set(s.author, [s]);
+    }
+  }
+
+  return map;
 }

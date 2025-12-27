@@ -43,11 +43,22 @@ async function main() {
   const globalAuthors = new Map<string, AuthorAggregation>();
 
   for (const repo of repoDirs) {
-    const { commitsWithDiff, authors } = analyzeRepo(repo);
+    const { commitsWithDiff, authors, sessions } = analyzeRepo(repo);
 
     commitCountsPerRepo.push(commitsWithDiff.length);
     mergeAuthorMaps(globalAuthors, authors);
     printCommitsTable(commitsWithDiff);
+    console.table(
+      sessions.map((s) => ({
+        author: s.author,
+        session_index: s.sessionIndex,
+        commits: s.commitCount,
+        duration_min: s.durationMinutes,
+        total_changes: s.totalChanges,
+        changes_hour: s.changesPerHour ?? "0",
+      }))
+    );
+    console.log("---------");
   }
 
   const medianCommitCounts = median(commitCountsPerRepo);

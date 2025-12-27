@@ -1,4 +1,9 @@
-import { CommitWithDiff, CriteriaRow, AuthorAggregation } from "./types";
+import {
+  CommitWithDiff,
+  CriteriaRow,
+  AuthorAggregation,
+  Session,
+} from "./types";
 
 export function printCommitsTable(commits: CommitWithDiff[]) {
   console.table(
@@ -26,13 +31,11 @@ export function buildCriteriaRows(
   deadline = new Date("2024-04-28T23:59:00")
 ): CriteriaRow[] {
   const deadlineDay = deadline.toLocaleDateString("sv-SE");
-
   return [...authors.values()].map((a) => {
     const firstDay = a.firstCommitDate.toLocaleDateString("sv-SE");
     const firstTime = a.firstCommitDate.toLocaleTimeString("de-DE", {
       hour12: false,
     });
-
     return {
       author: a.author,
       commitCount: a.commitCount,
@@ -42,6 +45,8 @@ export function buildCriteriaRows(
       firstCommitDate: a.firstCommitDate,
       firstCommitDay: firstDay,
       firstCommitTime: firstTime,
+      totalSessions: a.sessions.length,
+      averageChangesPerHour: calculateAverageChangesPerHour(a.sessions),
       lastCommitDay: a.lastCommitAt.toLocaleDateString("sv-SE"),
       firstCommitAtDeadline: firstDay === deadlineDay,
     };
@@ -53,9 +58,6 @@ export function printCriteriaTable(
   deadline = new Date("2024-04-28T23:59:00"),
   plannedHours = 6
 ) {
-  const latestStart = new Date(
-    deadline.getTime() - plannedHours * 60 * 60 * 1000
-  ).toLocaleString("de-DE");
   console.table(
     rows.map((row) => ({
       author: row.author,
@@ -74,6 +76,8 @@ export function printCriteriaTable(
       )
         ? "ja"
         : "nein",
+      total_sessions: row.totalSessions,
+      average_changes_hour_session: row.averageChangesPerHour,
       index: calculateIndex(row, deadline, plannedHours),
     }))
   );
@@ -103,4 +107,14 @@ function isTooLateFirstCommit(
   plannedHours: number
 ): boolean {
   return firstCommitAt > subtractHours(deadline, plannedHours);
+}
+
+function calculateAverageChangesPerHour(sessions: Session[]) {
+  let temp = 0;
+  let counter = 0;
+  for (const s of sessions) {
+    temp += s.changesPerHour ?? 0;
+    counter++;
+  }
+  return temp / counter;
 }
