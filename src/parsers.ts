@@ -1,5 +1,3 @@
-import { FileStatRow, Pair } from "./types";
-
 /**
  * Splits one commit line by "|" into:
  * hash | author | email | date | subject
@@ -23,7 +21,12 @@ export function splitCommitLinePipe(
  * Handles "-" / empty as 0 (common for binary files in git numstat output).
  * Returns null if the line is invalid.
  */
-export function parseFileStatLine(line: string): FileStatRow | null {
+export function parseFileStatLine(line: string): {
+  hash: string;
+  file: string;
+  insertions: number;
+  deletions: number;
+} | null {
   const parts = line.split("|");
   if (parts.length < 4) return null;
 
@@ -43,8 +46,8 @@ export function parseFileStatLine(line: string): FileStatRow | null {
   return { hash, file, insertions, deletions };
 }
 
-export function parseNumstat(text: string): Pair[] {
-  const pairs: Pair[] = [];
+export function parseNumstat(text: string): { hash: string; file: string }[] {
+  const commitFiles: { hash: string; file: string }[] = [];
   let currentHash: string | null = null;
 
   for (const line of text.split("\n")) {
@@ -56,11 +59,9 @@ export function parseNumstat(text: string): Pair[] {
 
     const parts = line.split("\t");
     if (parts.length < 3) continue;
-    const delStr = parts[1];
     const file = parts.slice(2).join("\t").trim();
-    const deletions = delStr === "-" ? 0 : Number(delStr);
-    if (file) pairs.push({ hash: currentHash, file, deletions });
+    if (file) commitFiles.push({ hash: currentHash, file });
   }
 
-  return pairs;
+  return commitFiles;
 }

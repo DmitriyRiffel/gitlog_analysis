@@ -1,11 +1,11 @@
-import { analyzeRepo, mad, median, lowerMadThreshold } from "./analysis";
+import { analyzeRepo } from "./analysis";
 import {
   buildCriteriaRows,
   printCommitsTable,
   printCriteriaTable,
 } from "./reporting";
 import { AuthorAggregation } from "./types";
-import { findGitRepos } from "./utils";
+import { findGitRepos, lowerMadThreshold, mad, median } from "./utils";
 
 function mergeAuthorMaps(
   into: Map<string, AuthorAggregation>,
@@ -17,19 +17,6 @@ function mergeAuthorMaps(
       into.set(author, { ...agg });
       continue;
     }
-
-    prev.commitCount += agg.commitCount;
-    prev.totalInsertions += agg.totalInsertions;
-    prev.totalDeletions += agg.totalDeletions;
-    prev.totalChanges += agg.totalChanges;
-
-    if (agg.firstCommitDate < prev.firstCommitDate) {
-      prev.firstCommitDate = agg.firstCommitDate;
-      prev.firstCommitHash = agg.firstCommitHash;
-    }
-    if (agg.lastCommitAt > prev.lastCommitAt) {
-      prev.lastCommitAt = agg.lastCommitAt;
-    }
   }
 }
 
@@ -40,13 +27,13 @@ async function main() {
   console.log(`Gefundene Repos: ${repoDirs.length}`);
 
   const commitCountsPerRepo: number[] = [];
-  const globalAuthors = new Map<string, AuthorAggregation>();
+  const students = new Map<string, AuthorAggregation>();
 
   for (const repo of repoDirs) {
-    const { commitsWithDiff, authors, sessions } = analyzeRepo(repo);
+    const { commitsWithDiff, authors, sessions } = await analyzeRepo(repo);
 
     commitCountsPerRepo.push(commitsWithDiff.length);
-    mergeAuthorMaps(globalAuthors, authors);
+    mergeAuthorMaps(students, authors);
     printCommitsTable(commitsWithDiff);
     console.table(
       sessions.map((s) => ({
@@ -55,7 +42,7 @@ async function main() {
         commits: s.commitCount,
         duration_min: s.durationMinutes,
         total_changes: s.totalChanges,
-        changes_hour: s.changesPerHour ?? "0",
+        changes_hour: s.changesPerHour ?? 0,
       }))
     );
     console.log("---------");
@@ -69,7 +56,7 @@ async function main() {
     2
   );
 
-  const authorTotalChanges = Array.from(globalAuthors.values()).map(
+  const authorTotalChanges = Array.from(students.values()).map(
     (a) => a.totalChanges
   );
 
@@ -79,6 +66,12 @@ async function main() {
     medianTotalChanges,
     madTotalChanges,
     1.5
+  );
+
+  const criteriaRows = buildCriteriaRows(
+    students,
+    thresholdCommitCounts,
+    thresholdTotalChanges
   );
   let count: number = 0;
   for (const changes of authorTotalChanges) {
@@ -104,12 +97,6 @@ async function main() {
     thresholdTotalChanges,
     "Mittelwert:",
     count / authorTotalChanges.length
-  );
-
-  const criteriaRows = buildCriteriaRows(
-    globalAuthors,
-    thresholdCommitCounts,
-    thresholdTotalChanges
   );
   printCriteriaTable(criteriaRows);
 }

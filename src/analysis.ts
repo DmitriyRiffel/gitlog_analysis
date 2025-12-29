@@ -7,14 +7,14 @@ import {
   Stats,
   ZERO_STATS,
 } from "./types";
-import { readLines } from "./utils";
+import { readLines, shouldIgnoreFile } from "./utils";
 
-export function createCSV(repo: string): Commit[] {
+export async function createCSV(repo: string): Promise<Commit[]> {
   /** Read commit metadata lines and skip CSV header row */
-  const commitLines = readLines(repo + "/commits.csv").slice(1);
+  const commitLines = (await readLines(repo + "/commits.csv")).slice(1);
 
   /** ToDo: Remove later on. Only for development */
-  const subdir = repo.split("\\");
+  const subdir = repo.split(/[\\/]+/);
   const submission =
     subdir.find((session) => session.startsWith("submission_")) ?? "";
 
@@ -44,27 +44,15 @@ export function createCSV(repo: string): Commit[] {
     date: commit.date,
     subject: commit.subject,
   }));
-
-  /** Parse commits, filter out a specific author, convert date to Date object, and sort chronologically */
-  // return commitLines
-  //   .map(splitCommitLinePipe)
-  //   .filter((p) => p[1] !== "Jens von Pilgrim")
-  //   .map((p) => ({
-  //     hash: p[0].trim(),
-  //     author: p[1].trim() + " " + submission,
-  //     email: p[2].trim(),
-  //     date: new Date(p[3]),
-  //     subject: p[4].trim(),
-  //   }))
-  //   .sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 
-export function buildStatsByHash(repo: string): Map<string, Stats> {
+export async function buildStatsByHash(
+  repo: string
+): Promise<Map<string, Stats>> {
   /** Read per-file stats and skip CSV header row */
-  const statsLines = readLines(repo + "/commits_with_stats.csv")
-    .filter((f) => !f.includes("json"))
-    .filter((f) => !f.includes("tests"))
-    .slice(1);
+  const statsLines = (await readLines(repo + "/commits_with_stats.csv")).slice(
+    1
+  );
 
   /** Aggregate stats per commit hash */
   const statsByHash = new Map<string, Stats>();
@@ -75,7 +63,7 @@ export function buildStatsByHash(repo: string): Map<string, Stats> {
   for (const line of statsLines) {
     const row = parseFileStatLine(line);
     if (!row) continue;
-
+    if (shouldIgnoreFile(row.file)) continue;
     // Add file to the set for this commit hash
     if (!filesByHash.has(row.hash)) filesByHash.set(row.hash, new Set());
     filesByHash.get(row.hash)!.add(row.file);
@@ -169,7 +157,7 @@ export function buildCommitsWithDiff(
     };
   });
 
-  return rows.filter((r) => r.totalChanges > 0);
+  return rows;
 }
 
 export function aggregateAuthors(
@@ -188,7 +176,7 @@ export function aggregateAuthors(
       commitCount: 0,
       firstCommitDate: new Date(8640000000000000),
       firstCommitHash: "",
-      lastCommitAt: new Date(0),
+      lastCommitDate: new Date(0),
       totalInsertions: 0,
       totalDeletions: 0,
       totalChanges: 0,
@@ -211,44 +199,20 @@ export function aggregateAuthors(
       a.firstCommitHash = commit.hash;
     }
 
-    if (!a.lastCommitAt || commit.date > a.lastCommitAt) {
-      a.lastCommitAt = commit.date;
+    if (!a.lastCommitDate || commit.date > a.lastCommitDate) {
+      a.lastCommitDate = commit.date;
     }
   }
   return map;
 }
 
-export function median(values: number[]) {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-
-  if (sorted.length % 2 !== 0) {
-    return sorted[mid];
-  }
-
-  return (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
-export function mad(values: number[]): number {
-  const med = median(values);
-
-  const deviations = values.map((v) => Math.abs(v - med));
-
-  return median(deviations);
-}
-
-export function lowerMadThreshold(
-  median: number,
-  mad: number,
-  k: number = 2
-): number {
-  return median - k * mad;
-}
-
-export function analyzeRepo(repo: string) {
+export async function analyzeRepo(repo: string) {
   const commits = createCSV(repo);
   const statsByHash = buildStatsByHash(repo);
-  const commitsWithDiff = buildCommitsWithDiff(commits, statsByHash);
+  const commitsWithDiff = buildCommitsWithDiff(
+    await commits,
+    await statsByHash
+  );
   const sessions = buildSessions(commitsWithDiff, 120);
   const authors = aggregateAuthors(commitsWithDiff, sessions);
   return { commitsWithDiff, sessions, authors };

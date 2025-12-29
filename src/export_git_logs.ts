@@ -1,9 +1,9 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { spawn } from "node:child_process";
-import { RunResult } from "./types";
 import { countAddedLines, countRemovedLines } from "./git_logs";
 import { parseNumstat } from "./parsers";
+import { existsDir, findGitRepos } from "./utils";
 
 async function getFileDiff(
   repoDir: string,
@@ -18,7 +18,10 @@ async function getFileDiff(
   return res.stdout;
 }
 
-function runGit(args: string[], cwd: string): Promise<RunResult> {
+function runGit(
+  args: string[],
+  cwd: string
+): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve, reject) => {
     const child = spawn("git", args, { cwd, shell: false });
 
@@ -31,44 +34,6 @@ function runGit(args: string[], cwd: string): Promise<RunResult> {
     child.on("error", (err) => reject(err));
     child.on("close", (code) => resolve({ stdout, stderr, code: code ?? 0 }));
   });
-}
-
-async function existsDir(p: string): Promise<boolean> {
-  try {
-    const st = await fs.stat(p);
-    return st.isDirectory();
-  } catch {
-    return false;
-  }
-}
-
-async function findGitRepos(rootDir: string): Promise<string[]> {
-  const repos: string[] = [];
-
-  async function walk(dir: string): Promise<void> {
-    if (await existsDir(path.join(dir, ".git"))) {
-      repos.push(dir);
-      return;
-    }
-
-    let entries;
-    try {
-      entries = await fs.readdir(dir, { withFileTypes: true });
-    } catch {
-      return;
-    }
-
-    for (const e of entries) {
-      if (!e.isDirectory()) continue;
-
-      if (e.name === "node_modules" || e.name === ".git") continue;
-
-      await walk(path.join(dir, e.name));
-    }
-  }
-
-  await walk(rootDir);
-  return repos;
 }
 
 async function getGitLogs(repoDir: string): Promise<boolean> {
@@ -114,11 +79,11 @@ async function getGitLogs(repoDir: string): Promise<boolean> {
   const statsPath = path.join(repoDir, "commits_with_stats_full.csv");
   await fs.writeFile(statsPath, numstats.stdout, { encoding: "utf8" });
 
-  const pairs = parseNumstat(numstats.stdout);
+  const commitFiles = parseNumstat(numstats.stdout);
 
   const rows: string[] = ["hash|file|insertions|deletions"];
 
-  for (const { hash, file, deletions } of pairs) {
+  for (const { hash, file } of commitFiles) {
     const diff = await getFileDiff(repoDir, hash, file);
     rows.push(
       `${hash}|${file}|${countAddedLines(diff)}|${countRemovedLines(diff)}`

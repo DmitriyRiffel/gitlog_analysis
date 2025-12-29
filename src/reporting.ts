@@ -4,6 +4,7 @@ import {
   AuthorAggregation,
   Session,
 } from "./types";
+import { getDayAndTimeFromDate } from "./utils";
 
 export function printCommitsTable(commits: CommitWithDiff[]) {
   console.table(
@@ -30,26 +31,22 @@ export function buildCriteriaRows(
   tooLittleChangesThreshold: number,
   deadline = new Date("2024-04-28T23:59:00")
 ): CriteriaRow[] {
-  const deadlineDay = deadline.toLocaleDateString("sv-SE");
   return [...authors.values()].map((a) => {
-    const firstDay = a.firstCommitDate.toLocaleDateString("sv-SE");
-    const firstTime = a.firstCommitDate.toLocaleTimeString("de-DE", {
-      hour12: false,
-    });
     return {
       author: a.author,
       commitCount: a.commitCount,
       totalChanges: a.totalChanges,
-      tooLittleCommits: a.commitCount <= tooLittleCommitThreshold,
-      tooLittleChanges: a.totalChanges <= tooLittleChangesThreshold,
+      areFewCommits: a.commitCount <= tooLittleCommitThreshold,
+      areFewChanges: a.totalChanges <= tooLittleChangesThreshold,
       firstCommitDate: a.firstCommitDate,
-      firstCommitDay: firstDay,
-      firstCommitTime: firstTime,
+      lastCommitDate: a.lastCommitDate,
       totalSessions: a.sessions.length,
       averageChangesPerHour: calculateAverageChangesPerHour(a.sessions),
       averageCommitsPerSession: calculateAverageCommitsPerSession(a.sessions),
-      lastCommitDay: a.lastCommitAt.toLocaleDateString("sv-SE"),
-      firstCommitAtDeadline: firstDay === deadlineDay,
+      lastCommitDay: getDayAndTimeFromDate(a.lastCommitDate).day,
+      firstCommitOnDeadline:
+        getDayAndTimeFromDate(a.firstCommitDate).day ===
+        getDayAndTimeFromDate(deadline).day,
     };
   });
 }
@@ -62,24 +59,29 @@ export function printCriteriaTable(
   console.table(
     rows.map((row) => ({
       author: row.author,
-      commits_count: row.commitCount,
-      total_changes: row.totalChanges,
-      first_commit_date: row.firstCommitDay,
-      first_commit_time: row.firstCommitTime,
-      last_commit_date: row.lastCommitDay,
-      first_commit_at_deadline_day: row.firstCommitAtDeadline ? "ja" : "nein",
-      too_little_commits: row.tooLittleCommits ? "ja" : "nein",
-      too_little_changes: row.tooLittleChanges ? "ja" : "nein",
-      too_late_first_commit: isTooLateFirstCommit(
+      commits: row.commitCount,
+      changes: row.totalChanges,
+      first_date: getDayAndTimeFromDate(row.firstCommitDate).day,
+      first_time: getDayAndTimeFromDate(row.firstCommitDate).time,
+      last_date: getDayAndTimeFromDate(row.lastCommitDate).day,
+      last_time: getDayAndTimeFromDate(row.lastCommitDate).time,
+      deadline:
+        getDayAndTimeFromDate(deadline).day +
+        " " +
+        getDayAndTimeFromDate(deadline).time,
+      first_on_deadline: row.firstCommitOnDeadline ? "ja" : "nein",
+      few_commits: row.areFewCommits ? "ja" : "nein",
+      few_changes: row.areFewChanges ? "ja" : "nein",
+      late_start: isTooLateFirstCommit(
         row.firstCommitDate,
         deadline,
         plannedHours
       )
         ? "ja"
         : "nein",
-      total_sessions: row.totalSessions,
-      average_changes_hour_session: row.averageChangesPerHour,
-      average_commits_session: row.averageCommitsPerSession,
+      sessions: row.totalSessions,
+      // average_changes_hour_session: row.averageChangesPerHour,
+      avg_commits: row.averageCommitsPerSession,
       index: calculateIndex(row, deadline, plannedHours),
     }))
   );
@@ -91,9 +93,9 @@ function calculateIndex(
   plannedHours = 6
 ): number {
   let index: number = 0;
-  if (row.firstCommitAtDeadline) index += 0.1;
-  if (row.tooLittleChanges) index += 0.1;
-  if (row.tooLittleCommits) index += 0.1;
+  if (row.firstCommitOnDeadline) index += 0.1;
+  if (row.areFewChanges) index += 0.1;
+  if (row.areFewCommits) index += 0.1;
   if (isTooLateFirstCommit(row.firstCommitDate, deadline, plannedHours))
     index += 0.1;
   return Number(index.toFixed(1));

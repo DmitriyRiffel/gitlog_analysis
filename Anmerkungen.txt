@@ -20,3 +20,9 @@ average_changes_hour_session
 es 2 commits sind in einer Session und in einem commit sind 65 Änderungen und in dem nächsten 1 Änderung, wird das zusammengerechnet und am Ende dauert diese Session 10 Minuten 
 und sind 370 Änderungen pro Stunde und es ist auch unklar, wie viel Zeit eigenltich für diese Session vebracht wurde, da für den ersten commit die Zeit sich nicht bestimmen lässt.
 Aber ich lasse trotzdem diese Berechnung noch da.
+- Das Tool wird sich nur eignen, wenn man komplett alleine an einem Projekt / in einem Repo arbeitet ---> Ein Repo == Ein Autor
+(In den betrachteten Daten entspricht jedes Repository genau einem Autor. Dadurch können repository-basierte Metriken direkt als autorbezogene Metriken interpretiert werden.)
+
+-"Jens von Pilgrim"-Ausfilterung hardcoded
+
+-Tests Dateien und Kommentar-Änderugnen nicht komplett ausfiltern, sondern irgendwo separat anzeigen?

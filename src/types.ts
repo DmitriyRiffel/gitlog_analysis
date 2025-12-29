@@ -27,10 +27,7 @@ export type CommitWithDiff = Commit &
     diffHours: number;
     diffMinutes: number;
     changesPerHour: number;
-    changesPerMinute: number;
   };
-
-export type RunResult = { stdout: string; stderr: string; code: number };
 
 export type AuthorAggregation = {
   author: string;
@@ -39,7 +36,7 @@ export type AuthorAggregation = {
   firstCommitDate: Date;
   firstCommitHash: string;
 
-  lastCommitAt: Date;
+  lastCommitDate: Date;
 
   totalInsertions: number;
   totalDeletions: number;
@@ -50,29 +47,17 @@ export type AuthorAggregation = {
 
 export type CriteriaRow = {
   author: string;
-  tooLittleCommits: boolean;
-  tooLittleChanges: boolean;
+  areFewCommits: boolean;
+  areFewChanges: boolean;
   firstCommitDate: Date;
-  firstCommitDay: string;
-  firstCommitTime: string;
-  firstCommitHash?: string;
-  lastCommitDay?: string;
+  lastCommitDate: Date;
   commitCount: number;
   totalChanges: number;
   totalSessions: number;
   averageChangesPerHour: number;
   averageCommitsPerSession: number;
-  firstCommitAtDeadline: boolean;
+  firstCommitOnDeadline: boolean;
 };
-
-export type FileStatRow = {
-  hash: string;
-  file: string;
-  insertions: number;
-  deletions: number;
-};
-
-export type Pair = { hash: string; file: string; deletions: number };
 
 export type Session = Stats & {
   author: string;
