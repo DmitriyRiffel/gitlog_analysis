@@ -47,6 +47,7 @@ export function buildCriteriaRows(
       firstCommitTime: firstTime,
       totalSessions: a.sessions.length,
       averageChangesPerHour: calculateAverageChangesPerHour(a.sessions),
+      averageCommitsPerSession: calculateAverageCommitsPerSession(a.sessions),
       lastCommitDay: a.lastCommitAt.toLocaleDateString("sv-SE"),
       firstCommitAtDeadline: firstDay === deadlineDay,
     };
@@ -78,6 +79,7 @@ export function printCriteriaTable(
         : "nein",
       total_sessions: row.totalSessions,
       average_changes_hour_session: row.averageChangesPerHour,
+      average_commits_session: row.averageCommitsPerSession,
       index: calculateIndex(row, deadline, plannedHours),
     }))
   );
@@ -117,4 +119,14 @@ function calculateAverageChangesPerHour(sessions: Session[]) {
     counter++;
   }
   return temp / counter;
+}
+
+function calculateAverageCommitsPerSession(sessions: Session[]) {
+  let temp = 0;
+  let counter = 0;
+  for (const s of sessions) {
+    temp += s.commitCount;
+    counter++;
+  }
+  return Number((temp / counter).toFixed(1));
 }

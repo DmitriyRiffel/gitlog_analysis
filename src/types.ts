@@ -61,6 +61,7 @@ export type CriteriaRow = {
   totalChanges: number;
   totalSessions: number;
   averageChangesPerHour: number;
+  averageCommitsPerSession: number;
   firstCommitAtDeadline: boolean;
 };
 
