@@ -26,3 +26,8 @@ Aber ich lasse trotzdem diese Berechnung noch da.
 -"Jens von Pilgrim"-Ausfilterung hardcoded
 
 -Tests Dateien und Kommentar-Änderugnen nicht komplett ausfiltern, sondern irgendwo separat anzeigen?
+
+-Momentan wird beim Parsen nicht berücksichtigt, wenn jemand eine binäre Datei ändert (png, pdf)
+
+-Beim Parsen statt hardcodenem "|" was anders verwenden
+

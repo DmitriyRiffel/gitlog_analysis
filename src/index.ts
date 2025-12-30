@@ -34,18 +34,18 @@ async function main() {
 
     commitCountsPerRepo.push(commitsWithDiff.length);
     mergeAuthorMaps(students, authors);
-    printCommitsTable(commitsWithDiff);
-    console.table(
-      sessions.map((s) => ({
-        author: s.author,
-        session_index: s.sessionIndex,
-        commits: s.commitCount,
-        duration_min: s.durationMinutes,
-        total_changes: s.totalChanges,
-        changes_hour: s.changesPerHour ?? 0,
-      }))
-    );
-    console.log("---------");
+    // printCommitsTable(commitsWithDiff);
+    // console.table(
+    //   sessions.map((s) => ({
+    //     author: s.author,
+    //     session_index: s.sessionIndex,
+    //     commits: s.commitCount,
+    //     duration_min: s.durationMinutes,
+    //     total_changes: s.totalChanges,
+    //     changes_hour: s.changesPerHour ?? 0,
+    //   }))
+    // );
+    // console.log("---------");
   }
 
   const medianCommitCounts = median(commitCountsPerRepo);
@@ -59,7 +59,12 @@ async function main() {
   const authorTotalChanges = Array.from(students.values()).map(
     (a) => a.totalChanges
   );
-
+  if (authorTotalChanges.length === 0) {
+    console.warn(
+      "Keine gültigen Autor-Daten für Berechnung der unteren Grenze"
+    );
+    return;
+  }
   const medianTotalChanges = median(authorTotalChanges);
   const madTotalChanges = mad(authorTotalChanges);
   const thresholdTotalChanges = lowerMadThreshold(

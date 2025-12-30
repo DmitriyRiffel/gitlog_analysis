@@ -96,9 +96,7 @@ export function buildCommitsWithDiff(
   statsByHash: Map<string, Stats>
 ): CommitWithDiff[] {
   const rows = commits.map((commit, i) => {
-    // "sv-SE" gives YYYY-MM-DD reliably for locale date strings
-    const day = commit.date.toLocaleDateString("sv-SE");
-    // 24h time formatting
+    const day = commit.date.toLocaleDateString("de-DE");
     const time = commit.date.toLocaleTimeString("de-DE", { hour12: false });
 
     // Look up aggregated stats; default to zeros if missing
@@ -119,7 +117,7 @@ export function buildCommitsWithDiff(
     }
 
     const prev = commits[i - 1];
-    const prevDay = prev.date.toLocaleDateString("sv-SE");
+    const prevDay = prev.date.toLocaleDateString("de-DE");
 
     // If the commit is on a new day, reset the diff to 0
     if (day !== prevDay) {
@@ -194,12 +192,12 @@ export function aggregateAuthors(
     a.totalDeletions += commit.deletions;
     a.totalChanges += commit.totalChanges;
 
-    if (!a.firstCommitDate || commit.date < a.firstCommitDate) {
+    if (commit.date < a.firstCommitDate) {
       a.firstCommitDate = commit.date;
       a.firstCommitHash = commit.hash;
     }
 
-    if (!a.lastCommitDate || commit.date > a.lastCommitDate) {
+    if (commit.date > a.lastCommitDate) {
       a.lastCommitDate = commit.date;
     }
   }

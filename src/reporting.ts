@@ -81,6 +81,7 @@ export function printCriteriaTable(
         : "nein",
       sessions: row.totalSessions,
       // average_changes_hour_session: row.averageChangesPerHour,
+      // average_changes_session: row.totalChanges / row.totalSessions,
       avg_commits: row.averageCommitsPerSession,
       index: calculateIndex(row, deadline, plannedHours),
     }))

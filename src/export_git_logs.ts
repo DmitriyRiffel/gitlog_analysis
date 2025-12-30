@@ -80,7 +80,7 @@ async function getGitLogs(repoDir: string): Promise<boolean> {
   await fs.writeFile(statsPath, numstats.stdout, { encoding: "utf8" });
 
   const commitFiles = parseNumstat(numstats.stdout);
-
+  // console.log("commitFiles", commitFiles);
   const rows: string[] = ["hash|file|insertions|deletions"];
 
   for (const { hash, file } of commitFiles) {

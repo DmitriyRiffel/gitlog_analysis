@@ -73,7 +73,6 @@ export function median(values: number[]) {
 
 export function mad(values: number[]): number {
   const med = median(values);
-
   const deviations = values.map((v) => Math.abs(v - med));
 
   return median(deviations);
@@ -102,6 +101,7 @@ export function shouldIgnoreFile(file: string): boolean {
     file.endsWith(".test.js")
   )
     return true;
+  if (file.endsWith(".yml")) return true;
 
   return false;
 }
