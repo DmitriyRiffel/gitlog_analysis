@@ -36,7 +36,7 @@ function runGit(
   });
 }
 
-async function getGitLogs(repoDir: string): Promise<boolean> {
+export async function getGitLogs(repoDir: string): Promise<boolean> {
   if (!(await existsDir(path.join(repoDir, ".git")))) {
     console.warn(`Kein .git-Ordner in: ${repoDir}`);
     return false;
@@ -97,10 +97,8 @@ async function getGitLogs(repoDir: string): Promise<boolean> {
   return true;
 }
 
-async function main() {
-  const rootDir = "F:/Hochschule/BA/sample1";
-
-  const repoDirs = await findGitRepos(rootDir);
+/** ToDo: Show the error if the path is wrong  */
+export async function exportGitLogs(repoDirs: string[]) {
   console.log(`Gefundene Repos: ${repoDirs.length}`);
 
   const results: { repo: string; ok: boolean }[] = [];
@@ -110,10 +108,26 @@ async function main() {
   }
 
   const okCount = results.filter((r) => r.ok).length;
-  console.log(`Done. OK: ${okCount}/${results.length}`);
+  console.log(`Done. OK: ${okCount} / ${results.length}`);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exitCode = 1;
-});
+// async function main() {
+//   const rootDir = "F:/Hochschule/BA/sample1";
+
+//   const repoDirs = await findGitRepos(rootDir);
+//   // console.log(`Gefundene Repos: ${repoDirs.length}`);
+
+//   const results: { repo: string; ok: boolean }[] = [];
+//   for (const repo of repoDirs) {
+//     const ok = await getGitLogs(repo);
+//     results.push({ repo, ok });
+//   }
+
+//   const okCount = results.filter((r) => r.ok).length;
+//   console.log(`Done. OK: ${okCount}/${results.length}`);
+// }
+
+// main().catch((e) => {
+//   console.error(e);
+//   process.exitCode = 1;
+// });

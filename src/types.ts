@@ -68,3 +68,11 @@ export type Session = Stats & {
   commitCount: number;
   changesPerHour?: number;
 };
+
+export type CliInput = {
+  repoPath: string;
+  deadline: Date;
+  estimatedEffort: number;
+  commitThresholdMultiplier: number;
+  changesThresholdMultiplier: number;
+};

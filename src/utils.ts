@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { AuthorAggregation } from "./types";
 
 export async function existsDir(p: string): Promise<boolean> {
   try {
@@ -60,7 +61,7 @@ export function getDayAndTimeFromDate(date: Date): {
   return { day, time };
 }
 
-export function median(values: number[]) {
+function calculateMedian(values: number[]) {
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
 
@@ -71,18 +72,19 @@ export function median(values: number[]) {
   return (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-export function mad(values: number[]): number {
-  const med = median(values);
+function calculateMad(values: number[]): number {
+  const med = calculateMedian(values);
   const deviations = values.map((v) => Math.abs(v - med));
 
-  return median(deviations);
+  return calculateMedian(deviations);
 }
 
-export function lowerMadThreshold(
-  median: number,
-  mad: number,
+export function calculateLowerMadThreshold(
+  values: number[],
   k: number = 2
 ): number {
+  const median = calculateMedian(values);
+  const mad = calculateMad(values);
   return median - k * mad;
 }
 
@@ -104,4 +106,17 @@ export function shouldIgnoreFile(file: string): boolean {
   if (file.endsWith(".yml")) return true;
 
   return false;
+}
+
+export function mergeAuthorMaps(
+  into: Map<string, AuthorAggregation>,
+  from: Map<string, AuthorAggregation>
+) {
+  for (const [author, agg] of from.entries()) {
+    const prev = into.get(author);
+    if (!prev) {
+      into.set(author, { ...agg });
+      continue;
+    }
+  }
 }

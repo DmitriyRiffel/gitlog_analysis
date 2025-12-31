@@ -31,3 +31,6 @@ Aber ich lasse trotzdem diese Berechnung noch da.
 
 -Beim Parsen statt hardcodenem "|" was anders verwenden
 
+-Nested Repos werden ignoriert
+
+-Sehr tiefe Ordnerstrukturen können Performance-Probleme verursachen

@@ -1,30 +1,34 @@
 import { analyzeRepo } from "./analysis";
+import { askCliInput } from "./cli";
+import { getGitLogs } from "./export_git_logs";
 import {
   buildCriteriaRows,
   printCommitsTable,
   printCriteriaTable,
 } from "./reporting";
 import { AuthorAggregation } from "./types";
-import { findGitRepos, lowerMadThreshold, mad, median } from "./utils";
-
-function mergeAuthorMaps(
-  into: Map<string, AuthorAggregation>,
-  from: Map<string, AuthorAggregation>
-) {
-  for (const [author, agg] of from.entries()) {
-    const prev = into.get(author);
-    if (!prev) {
-      into.set(author, { ...agg });
-      continue;
-    }
-  }
-}
+import {
+  calculateLowerMadThreshold,
+  findGitRepos,
+  mergeAuthorMaps,
+} from "./utils";
 
 async function main() {
-  const rootDir = "F:/Hochschule/BA/sample1";
+  const cli = await askCliInput();
 
-  const repoDirs = await findGitRepos(rootDir);
-  console.log(`Gefundene Repos: ${repoDirs.length}`);
+  const rootDir = "F:/Hochschule/BA/sample1";
+  const repoDirs = await findGitRepos(cli.repoPath);
+  // const repoDirs = await findGitRepos(rootDir);
+  console.log("\nRepository:", cli.repoPath);
+  console.log(
+    "Deadline:",
+    cli.deadline.toLocaleDateString("de-DE") +
+      " " +
+      cli.deadline.toLocaleTimeString("de-DE")
+  );
+  console.log("Untere Grenze für Commits: ", cli.commitThresholdMultiplier);
+  console.log("Geschätzte Aufwand in Stunden: ", cli.estimatedEffort);
+  // await exportGitLogs(repoDirs);
 
   const commitCountsPerRepo: number[] = [];
   const students = new Map<string, AuthorAggregation>();
@@ -48,62 +52,38 @@ async function main() {
     // console.log("---------");
   }
 
-  const medianCommitCounts = median(commitCountsPerRepo);
-  const madCommitCounts = mad(commitCountsPerRepo);
-  const thresholdCommitCounts = lowerMadThreshold(
-    medianCommitCounts,
-    madCommitCounts,
+  const thresholdCommitCounts = calculateLowerMadThreshold(
+    commitCountsPerRepo,
     2
   );
 
   const authorTotalChanges = Array.from(students.values()).map(
     (a) => a.totalChanges
   );
-  if (authorTotalChanges.length === 0) {
-    console.warn(
-      "Keine gültigen Autor-Daten für Berechnung der unteren Grenze"
-    );
-    return;
-  }
-  const medianTotalChanges = median(authorTotalChanges);
-  const madTotalChanges = mad(authorTotalChanges);
-  const thresholdTotalChanges = lowerMadThreshold(
-    medianTotalChanges,
-    madTotalChanges,
+
+  const thresholdTotalChanges = calculateLowerMadThreshold(
+    authorTotalChanges,
     1.5
   );
 
   const criteriaRows = buildCriteriaRows(
     students,
     thresholdCommitCounts,
-    thresholdTotalChanges
+    thresholdTotalChanges,
+    cli.deadline
   );
   let count: number = 0;
   for (const changes of authorTotalChanges) {
     count += changes;
   }
-  console.log("Anzahl von commits: ", commitCountsPerRepo);
+  console.log("Untere Grenze für Commits:", thresholdCommitCounts);
   console.log(
-    "Median:",
-    medianCommitCounts,
-    "MAD:",
-    madCommitCounts,
-    "threshold:",
-    thresholdCommitCounts
-  );
-  console.log(
-    "TotalChanges per Autor:",
-    authorTotalChanges,
-    "Median:",
-    medianTotalChanges,
-    "MAD:",
-    madTotalChanges,
-    "LowerThreshold:",
+    "Untere Grenze für Changes:",
     thresholdTotalChanges,
     "Mittelwert:",
     count / authorTotalChanges.length
   );
-  printCriteriaTable(criteriaRows);
+  printCriteriaTable(criteriaRows, cli.deadline, cli.estimatedEffort);
 }
 
 main().catch((e) => {

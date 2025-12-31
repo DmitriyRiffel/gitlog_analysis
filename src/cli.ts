@@ -1,0 +1,49 @@
+import * as readline from "node:readline/promises";
+import { stdin as input, stdout as output } from "node:process";
+import { CliInput } from "./types";
+
+export async function askCliInput(): Promise<CliInput> {
+  const rl = readline.createInterface({ input, output });
+
+  /** Only for Development */
+  const DEFAULT_REPO = `F:/Hochschule/BA/sample1`;
+  const DEFAULT_DEADLINE = `2024-04-28`;
+  /** ------ */
+
+  const DEFAULT_COMMIT_THRESHOLD_MULT = 2;
+  const DEFAULT_CHANGES_THRESHOLD_MULT = 1.5;
+  const DEFAULT_ESTIMATED_EFFORT = 6;
+  try {
+    const repoPath =
+      (await rl.question(`Pfad zum Ordner mit Repos: `)).trim() || DEFAULT_REPO;
+    const deadlineStr =
+      (await rl.question(`Deadline (YYYY-MM-DD): `)).trim() || DEFAULT_DEADLINE;
+    const commitThresholdMultiplierStr =
+      (
+        await rl.question(
+          `Multiplikator für Untere Grenze der Commitsanzahl im Bereich 1-3 (Default = ${DEFAULT_COMMIT_THRESHOLD_MULT}): `
+        )
+      ).trim() || DEFAULT_COMMIT_THRESHOLD_MULT;
+    const changesThresholdMultiplierStr =
+      (
+        await rl.question(
+          `Multiplikator für Untere Grenze der Änderungen im Bereich 1-3 (Default = ${DEFAULT_CHANGES_THRESHOLD_MULT}): `
+        )
+      ).trim() || DEFAULT_CHANGES_THRESHOLD_MULT;
+    const estimatedEffortStr =
+      (
+        await rl.question(
+          `Geschätzte Aufwand in Stunden (Default = ${DEFAULT_ESTIMATED_EFFORT} St.): `
+        )
+      ).trim() || DEFAULT_ESTIMATED_EFFORT;
+    return {
+      repoPath,
+      deadline: new Date(`${deadlineStr}T23:59:59`),
+      estimatedEffort: Number(estimatedEffortStr),
+      commitThresholdMultiplier: Number(commitThresholdMultiplierStr),
+      changesThresholdMultiplier: Number(changesThresholdMultiplierStr),
+    };
+  } finally {
+    rl.close();
+  }
+}
