@@ -26,6 +26,8 @@ export function parseFileStatLine(line: string): {
   file: string;
   insertions: number;
   deletions: number;
+  commentInsertions: number;
+  commentDeletions: number;
 } | null {
   const parts = line.split("|");
   if (parts.length < 4) return null;
@@ -33,17 +35,34 @@ export function parseFileStatLine(line: string): {
   const hash = parts[0].trim();
   const file = parts[1].trim();
 
-  const insStr = parts[2].trim();
-  const delStr = parts[3].trim();
+  const insertionsStr = parts[2].trim();
+  const deletionsStr = parts[3].trim();
+  const commentInsertionsStr = parts[4].trim();
+  const commentDeletionsStr = parts[5].trim();
 
-  const insertions = Number(insStr);
-  const deletions = Number(delStr);
+  const insertions = Number(insertionsStr);
+  const deletions = Number(deletionsStr);
+  const commentInsertions = Number(commentInsertionsStr);
+  const commentDeletions = Number(commentDeletionsStr);
 
   if (!/^[0-9a-f]{40}$/i.test(hash)) return null;
   if (!file) return null;
-  if (!Number.isFinite(insertions) || !Number.isFinite(deletions)) return null;
+  if (
+    !Number.isFinite(insertions) ||
+    !Number.isFinite(deletions) ||
+    !Number.isFinite(commentDeletions) ||
+    !Number.isFinite(commentInsertions)
+  )
+    return null;
 
-  return { hash, file, insertions, deletions };
+  return {
+    hash,
+    file,
+    insertions,
+    deletions,
+    commentInsertions,
+    commentDeletions,
+  };
 }
 
 export function parseNumstat(text: string): { hash: string; file: string }[] {

@@ -1,8 +1,11 @@
 export type Stats = {
   filesChanged: number;
   insertions: number;
+  commentInsertions: number;
   deletions: number;
+  commentDeletions: number;
   totalChanges: number;
+  totalCommentChanges: number;
 };
 
 export const ZERO_STATS: Stats = {
@@ -10,6 +13,9 @@ export const ZERO_STATS: Stats = {
   insertions: 0,
   deletions: 0,
   totalChanges: 0,
+  commentInsertions: 0,
+  commentDeletions: 0,
+  totalCommentChanges: 0,
 };
 
 export type Commit = {
@@ -40,8 +46,10 @@ export type AuthorAggregation = {
 
   totalInsertions: number;
   totalDeletions: number;
+  totalCommentInsertions: number;
+  totalCommentDeletions: number;
   totalChanges: number;
-
+  totalCommentChanges: number;
   sessions: Session[];
 };
 
@@ -53,6 +61,7 @@ export type CriteriaRow = {
   lastCommitDate: Date;
   commitCount: number;
   totalChanges: number;
+  totalCommentChanges: number;
   totalSessions: number;
   averageChangesPerHour: number;
   averageCommitsPerSession: number;

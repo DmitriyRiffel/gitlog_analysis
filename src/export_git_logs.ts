@@ -1,7 +1,11 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { spawn } from "node:child_process";
-import { countAddedLines, countRemovedLines } from "./git_logs";
+import {
+  countAddedLines,
+  countCodeChanges,
+  countRemovedLines,
+} from "./git_logs";
 import { parseNumstat } from "./parsers";
 import { existsDir, findGitRepos } from "./utils";
 
@@ -81,12 +85,18 @@ export async function getGitLogs(repoDir: string): Promise<boolean> {
 
   const commitFiles = parseNumstat(numstats.stdout);
   // console.log("commitFiles", commitFiles);
-  const rows: string[] = ["hash|file|insertions|deletions"];
+  const rows: string[] = [
+    "hash|file|insertions|deletions|comments-insertions|comments-deletions",
+  ];
 
   for (const { hash, file } of commitFiles) {
     const diff = await getFileDiff(repoDir, hash, file);
     rows.push(
-      `${hash}|${file}|${countAddedLines(diff)}|${countRemovedLines(diff)}`
+      `${hash}|${file}|${countCodeChanges(diff).insertions}|${
+        countCodeChanges(diff).deletions
+      }|${countCodeChanges(diff).commentInsertions}|${
+        countCodeChanges(diff).commentDeletions
+      }`
     );
   }
 
@@ -110,24 +120,3 @@ export async function exportGitLogs(repoDirs: string[]) {
   const okCount = results.filter((r) => r.ok).length;
   console.log(`Done. OK: ${okCount} / ${results.length}`);
 }
-
-// async function main() {
-//   const rootDir = "F:/Hochschule/BA/sample1";
-
-//   const repoDirs = await findGitRepos(rootDir);
-//   // console.log(`Gefundene Repos: ${repoDirs.length}`);
-
-//   const results: { repo: string; ok: boolean }[] = [];
-//   for (const repo of repoDirs) {
-//     const ok = await getGitLogs(repo);
-//     results.push({ repo, ok });
-//   }
-
-//   const okCount = results.filter((r) => r.ok).length;
-//   console.log(`Done. OK: ${okCount}/${results.length}`);
-// }
-
-// main().catch((e) => {
-//   console.error(e);
-//   process.exitCode = 1;
-// });

@@ -73,12 +73,16 @@ export async function buildStatsByHash(
 
     const insertions = prev.insertions + row.insertions;
     const deletions = prev.deletions + row.deletions;
-
+    const commentInsertions = prev.commentInsertions + row.commentInsertions;
+    const commentDeletions = prev.commentDeletions + row.commentDeletions;
     statsByHash.set(row.hash, {
       filesChanged: 0,
       insertions,
       deletions,
       totalChanges: insertions + deletions,
+      commentInsertions,
+      commentDeletions,
+      totalCommentChanges: commentInsertions + commentDeletions,
     });
   }
 
@@ -155,6 +159,7 @@ export function buildCommitsWithDiff(
     };
   });
 
+  // return rows.filter((r) => r.totalChanges > 0);
   return rows;
 }
 
@@ -177,7 +182,10 @@ export function aggregateAuthors(
       lastCommitDate: new Date(0),
       totalInsertions: 0,
       totalDeletions: 0,
+      totalCommentInsertions: 0,
+      totalCommentDeletions: 0,
       totalChanges: 0,
+      totalCommentChanges: 0,
       sessions: sessionsByAuthor.get(author) ?? [],
     };
     map.set(author, fresh);
@@ -191,6 +199,9 @@ export function aggregateAuthors(
     a.totalInsertions += commit.insertions;
     a.totalDeletions += commit.deletions;
     a.totalChanges += commit.totalChanges;
+    a.totalCommentInsertions += commit.commentInsertions;
+    a.totalCommentDeletions += commit.commentDeletions;
+    a.totalCommentChanges += commit.totalCommentChanges;
 
     if (commit.date < a.firstCommitDate) {
       a.firstCommitDate = commit.date;
@@ -266,6 +277,9 @@ function newSession(commit: CommitWithDiff, index: number): Session {
     insertions: 0,
     deletions: 0,
     totalChanges: 0,
+    commentInsertions: 0,
+    commentDeletions: 0,
+    totalCommentChanges: 0,
   };
 }
 
@@ -277,6 +291,9 @@ function addCommit(session: Session, commit: CommitWithDiff) {
   session.insertions += commit.insertions;
   session.deletions += commit.deletions;
   session.totalChanges += commit.totalChanges;
+  // session.commentInsertions += commit.commentInsertions;
+  // session.commentDeletions += commit.commentDeletions;
+  // session.totalCommentChanges += commit.commentInsertions;
 }
 
 function finalizeSession(session: Session) {

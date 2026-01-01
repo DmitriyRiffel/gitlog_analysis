@@ -11,7 +11,7 @@
 */
 -  │ 'f735bcb46e6272453ec8b55551b03885e0c159f8' │ 'author17 submission_1950936' │ 'registriere zweite umgesetzt'           │ '2024-04-27' │ '20:11:55' │ 1     │ 6   │ 0   │ 6     │ 0.022      │ 1.35         │ 266.67   :
   in diesem Fall ist die Berechnung von der changes_hour (266.67) sieht bisschen verwirrend aus, und irgendwie verdächlich, aber im Endeffekt da sind nur 6 Änderungen innerhalb von 1.35 Minuten
-- so ein Kommentar wird noch als Änderung mitgezählt: return Math.min(...this.noten); // niedrigste note
+- so ein Kommentar wird noch als Änderung mitgezählt: return Math.min(...this.noten); // niedrigste note ---> hab jetzt implementiert aber jetzt wird das auch "const url = "http://example.com";" ab // weggeschnieden
 - Bei einem Repo tauchen manchmal 2 verschiedenen Autoren. Ich gehen davon aus, dass es ein Student bloß an 2 verschiedenen Rechnern gearbeitet hat. 
 - Zeitliche Abstände zwischen Commits sind nur dann interpretierbar, wenn sie Teil einer zusammenhängenden Arbeitsphase sind. Große Pausen oder Tageswechsel führen zu Verzerrungen der 
 Produktivitätsmetriken und wurden daher ausgeschlossen.

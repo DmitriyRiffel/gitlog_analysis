@@ -18,6 +18,9 @@ export function printCommitsTable(commits: CommitWithDiff[]) {
       ins: c.insertions,
       del: c.deletions,
       total: c.totalChanges,
+      commentIns: c.commentInsertions,
+      commentDel: c.commentDeletions,
+      total_comment: c.totalCommentChanges,
       diff_hours: Number(c.diffHours.toFixed(3)),
       diff_minutes: Number(c.diffMinutes.toFixed(3)),
       changes_hour: Number(c.changesPerHour.toFixed(2)),
@@ -36,6 +39,7 @@ export function buildCriteriaRows(
       author: a.author,
       commitCount: a.commitCount,
       totalChanges: a.totalChanges,
+      totalCommentChanges: a.totalCommentChanges,
       areFewCommits: a.commitCount <= tooLittleCommitThreshold,
       areFewChanges: a.totalChanges <= tooLittleChangesThreshold,
       firstCommitDate: a.firstCommitDate,
@@ -61,6 +65,7 @@ export function printCriteriaTable(
       author: row.author,
       commits: row.commitCount,
       changes: row.totalChanges,
+      comment_changes: row.totalCommentChanges,
       first_date: getDayAndTimeFromDate(row.firstCommitDate).day,
       first_time: getDayAndTimeFromDate(row.firstCommitDate).time,
       last_date: getDayAndTimeFromDate(row.lastCommitDate).day,
@@ -94,12 +99,12 @@ function calculateIndex(
   plannedHours = 6
 ): number {
   let index: number = 0;
-  if (row.firstCommitOnDeadline) index += 0.1;
-  if (row.areFewChanges) index += 0.1;
-  if (row.areFewCommits) index += 0.1;
+  if (row.firstCommitOnDeadline) index += 0.25;
+  if (row.areFewChanges) index += 0.25;
+  if (row.areFewCommits) index += 0.25;
   if (isTooLateFirstCommit(row.firstCommitDate, deadline, plannedHours))
-    index += 0.1;
-  return Number(index.toFixed(1));
+    index += 0.25;
+  return Number(index.toFixed(2));
 }
 
 function subtractHours(d: Date, hours: number): Date {
