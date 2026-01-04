@@ -1,9 +1,3 @@
-/**
- * Splits one commit line by "|" into:
- * hash | author | email | date | subject
- *
- * Note: subject might contain "|" itself, so the remaining parts is going to be joined
- */
 export function splitCommitLinePipe(
   line: string
 ): [string, string, string, string, string] {
@@ -16,11 +10,6 @@ export function splitCommitLinePipe(
   return [hash, author, email, date, subject];
 }
 
-/**
- * Parses a per-file stat line (hash|file|ins|del).
- * Handles "-" / empty as 0 (common for binary files in git numstat output).
- * Returns null if the line is invalid.
- */
 export function parseFileStatLine(line: string): {
   hash: string;
   file: string;

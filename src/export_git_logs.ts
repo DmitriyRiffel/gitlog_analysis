@@ -1,14 +1,11 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { spawn } from "node:child_process";
-import {
-  countAddedLines,
-  countCodeChanges,
-  countRemovedLines,
-} from "./git_logs";
+import { countCodeChanges } from "./git_logs";
 import { parseNumstat } from "./parsers";
-import { existsDir, findGitRepos } from "./utils";
+import { existsDir } from "./utils";
 
+/**https://git-scm.com/docs/git-show */
 async function getFileDiff(
   repoDir: string,
   hash: string,
@@ -63,14 +60,7 @@ export async function getGitLogs(repoDir: string): Promise<boolean> {
   await fs.writeFile(commitsPath, commitsCsv, { encoding: "utf8" });
 
   const numstats = await runGit(
-    [
-      "log",
-      "--pretty=format:COMMIT:%H",
-      "--numstat",
-      "-p",
-      "--unified=0",
-      "--no-color",
-    ],
+    ["log", "--pretty=format:COMMIT:%H", "--numstat", "--no-color"],
     repoDir
   );
 
@@ -91,17 +81,14 @@ export async function getGitLogs(repoDir: string): Promise<boolean> {
 
   for (const { hash, file } of commitFiles) {
     const diff = await getFileDiff(repoDir, hash, file);
+    const countedChanges = countCodeChanges(diff);
     rows.push(
-      `${hash}|${file}|${countCodeChanges(diff).insertions}|${
-        countCodeChanges(diff).deletions
-      }|${countCodeChanges(diff).commentInsertions}|${
-        countCodeChanges(diff).commentDeletions
-      }`
+      `${hash}|${file}|${countedChanges.insertions}|${countedChanges.deletions}|${countedChanges.commentInsertions}|${countedChanges.commentDeletions}`
     );
   }
 
   const cleanPath = path.join(repoDir, "commits_with_stats.csv");
-  await fs.writeFile(cleanPath, rows.join("\n") + "\n", { encoding: "utf8" });
+  await fs.writeFile(cleanPath, rows.join("\n"), { encoding: "utf8" });
 
   console.log("Fertig: commits.csv, commits_with_stats.csv erstellt.");
   return true;

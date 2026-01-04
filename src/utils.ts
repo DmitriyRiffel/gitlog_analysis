@@ -90,22 +90,34 @@ export function calculateLowerMadThreshold(
 
 export function shouldIgnoreFile(file: string): boolean {
   if (file.endsWith(".json")) return true;
-  if (
+  // if (
+  //   file.includes("/tests/") ||
+  //   file.includes("/test/") ||
+  //   file.includes("/__tests__/")
+  // )
+  //   return true;
+  // if (
+  //   file.endsWith(".spec.ts") ||
+  //   file.endsWith(".spec.js")
+  //   // file.endsWith(".test.ts") ||
+  //   // file.endsWith(".test.js")
+  // )
+  //   return true;
+  if (file.endsWith(".yml")) return true;
+
+  return false;
+}
+
+export function isTestFile(file: string): boolean {
+  return (
     file.includes("/tests/") ||
     file.includes("/test/") ||
-    file.includes("/__tests__/")
-  )
-    return true;
-  if (
+    file.includes("/__tests__/") ||
     file.endsWith(".spec.ts") ||
     file.endsWith(".spec.js") ||
     file.endsWith(".test.ts") ||
     file.endsWith(".test.js")
-  )
-    return true;
-  if (file.endsWith(".yml")) return true;
-
-  return false;
+  );
 }
 
 export function mergeAuthorMaps(

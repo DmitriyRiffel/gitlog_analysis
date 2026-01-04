@@ -35,53 +35,75 @@ async function main() {
 
   for (const repo of repoDirs) {
     const { commitsWithDiff, authors, sessions } = await analyzeRepo(repo);
-
-    commitCountsPerRepo.push(commitsWithDiff.length);
+    const nonTestCommitCount = commitsWithDiff.filter(
+      (c) => c.totalChanges > 0 || c.totalCommentChanges > 0
+    ).length;
+    let idx = 0;
+    console.log(
+      "Diff: ",
+      commitsWithDiff[idx].author,
+      " ",
+      commitsWithDiff.length
+    );
+    console.log("nontestCommitLength : ", nonTestCommitCount);
+    commitCountsPerRepo.push(nonTestCommitCount);
     mergeAuthorMaps(students, authors);
     printCommitsTable(commitsWithDiff);
-    console.table(
-      sessions.map((s) => ({
-        author: s.author,
-        session_index: s.sessionIndex,
-        commits: s.commitCount,
-        duration_min: s.durationMinutes,
-        total_changes: s.totalChanges,
-        changes_hour: s.changesPerHour ?? 0,
-      }))
-    );
-    console.log("---------");
+    // console.table(
+    //   sessions.map((s) => ({
+    //     author: s.author,
+    //     session_index: s.sessionIndex,
+    //     commits: s.commitCount,
+    //     duration_min: s.durationMinutes,
+    //     total_changes: s.totalChanges,
+    //     changes_hour: s.changesPerHour ?? 0,
+    //   }))
+    // );
+    // console.log("---------");
+    idx++;
   }
-
-  const thresholdCommitCounts = calculateLowerMadThreshold(
-    commitCountsPerRepo,
-    2
-  );
 
   const authorTotalChanges = Array.from(students.values()).map(
     (a) => a.totalChanges
   );
+  const authorTotalChangesInTests = Array.from(students.values()).map(
+    (a) => a.totalChangesInTests
+  );
 
+  const thresholdCommitCount = calculateLowerMadThreshold(
+    commitCountsPerRepo,
+    cli.commitThresholdMultiplier
+  );
   const thresholdTotalChanges = calculateLowerMadThreshold(
     authorTotalChanges,
     1.5
   );
+  const thresholdTotalChangesInTests = calculateLowerMadThreshold(
+    authorTotalChangesInTests,
+    3
+  );
 
   const criteriaRows = buildCriteriaRows(
     students,
-    thresholdCommitCounts,
+    thresholdCommitCount,
     thresholdTotalChanges,
+    thresholdTotalChangesInTests,
     cli.deadline
   );
   let count: number = 0;
   for (const changes of authorTotalChanges) {
     count += changes;
   }
-  console.log("Untere Grenze für Commits:", thresholdCommitCounts);
+  console.log("Untere Grenze für Commits:", thresholdCommitCount);
   console.log(
     "Untere Grenze für Changes:",
     thresholdTotalChanges,
     "Mittelwert:",
     count / authorTotalChanges.length
+  );
+  console.log(
+    "Untere Grenze für Tests-Änderungen",
+    thresholdTotalChangesInTests
   );
   printCriteriaTable(criteriaRows, cli.deadline, cli.estimatedEffort);
 }

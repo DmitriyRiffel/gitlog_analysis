@@ -7,9 +7,9 @@ import {
   Stats,
   ZERO_STATS,
 } from "./types";
-import { readLines, shouldIgnoreFile } from "./utils";
+import { isTestFile, readLines, shouldIgnoreFile } from "./utils";
 
-export async function createCSV(repo: string): Promise<Commit[]> {
+async function createCSV(repo: string): Promise<Commit[]> {
   /** Read commit metadata lines and skip CSV header row */
   const commitLines = (await readLines(repo + "/commits.csv")).slice(1);
 
@@ -63,18 +63,27 @@ export async function buildStatsByHash(
   for (const line of statsLines) {
     const row = parseFileStatLine(line);
     if (!row) continue;
+    const isTest = isTestFile(row.file);
     if (shouldIgnoreFile(row.file)) continue;
     // Add file to the set for this commit hash
     if (!filesByHash.has(row.hash)) filesByHash.set(row.hash, new Set());
-    filesByHash.get(row.hash)!.add(row.file);
+    filesByHash.get(row.hash)?.add(row.file);
 
     // Sum insertions/deletions per commit hash
     const prev = statsByHash.get(row.hash) ?? { ...ZERO_STATS };
 
-    const insertions = prev.insertions + row.insertions;
-    const deletions = prev.deletions + row.deletions;
-    const commentInsertions = prev.commentInsertions + row.commentInsertions;
-    const commentDeletions = prev.commentDeletions + row.commentDeletions;
+    const insertions = prev.insertions + (isTest ? 0 : row.insertions);
+    const deletions = prev.deletions + (isTest ? 0 : row.deletions);
+    const commentInsertions =
+      prev.commentInsertions + (isTest ? 0 : row.commentInsertions);
+    const commentDeletions =
+      prev.commentDeletions + (isTest ? 0 : row.commentDeletions);
+
+    const insertionsInTests =
+      prev.insertionsInTests + (isTest ? row.insertions : 0);
+    const deletionsInTests =
+      prev.deletionsInTests + (isTest ? row.deletions : 0);
+
     statsByHash.set(row.hash, {
       filesChanged: 0,
       insertions,
@@ -83,6 +92,9 @@ export async function buildStatsByHash(
       commentInsertions,
       commentDeletions,
       totalCommentChanges: commentInsertions + commentDeletions,
+      insertionsInTests,
+      deletionsInTests,
+      totalChangesInTests: insertionsInTests + deletionsInTests,
     });
   }
 
@@ -159,7 +171,12 @@ export function buildCommitsWithDiff(
     };
   });
 
-  // return rows.filter((r) => r.totalChanges > 0);
+  return rows.filter(
+    (r) =>
+      r.totalChanges > 0 ||
+      r.totalChangesInTests > 0 ||
+      r.totalCommentChanges > 0
+  );
   return rows;
 }
 
@@ -186,6 +203,9 @@ export function aggregateAuthors(
       totalCommentDeletions: 0,
       totalChanges: 0,
       totalCommentChanges: 0,
+      totalInsertionsInTests: 0,
+      totalDeletionsInTests: 0,
+      totalChangesInTests: 0,
       sessions: sessionsByAuthor.get(author) ?? [],
     };
     map.set(author, fresh);
@@ -195,13 +215,16 @@ export function aggregateAuthors(
   for (const commit of commits) {
     const a = getOrCreate(commit.author);
 
-    a.commitCount += 1;
+    if (commit.totalChanges > 0) {
+      a.commitCount += 1;
+    }
     a.totalInsertions += commit.insertions;
     a.totalDeletions += commit.deletions;
     a.totalChanges += commit.totalChanges;
     a.totalCommentInsertions += commit.commentInsertions;
     a.totalCommentDeletions += commit.commentDeletions;
     a.totalCommentChanges += commit.totalCommentChanges;
+    a.totalChangesInTests += commit.totalChangesInTests;
 
     if (commit.date < a.firstCommitDate) {
       a.firstCommitDate = commit.date;
@@ -280,6 +303,9 @@ function newSession(commit: CommitWithDiff, index: number): Session {
     commentInsertions: 0,
     commentDeletions: 0,
     totalCommentChanges: 0,
+    insertionsInTests: 0,
+    deletionsInTests: 0,
+    totalChangesInTests: 0,
   };
 }
 
