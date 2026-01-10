@@ -155,7 +155,13 @@ export function buildCommitsWithDiff(
     const diffMinutes = diffHours * 60;
 
     // Compute "speed" metrics; avoid division by zero
-    const changesPerHour = diffHours !== 0 ? stats.totalChanges / diffHours : 0;
+    const changesPerHour =
+      diffHours !== 0
+        ? (stats.totalChanges +
+            stats.totalChangesInTests +
+            stats.totalCommentChanges) /
+          diffHours
+        : 0;
     const changesPerMinute =
       diffMinutes !== 0 ? stats.totalChanges / diffMinutes : 0;
 
@@ -319,7 +325,7 @@ function addCommit(session: Session, commit: CommitWithDiff) {
   session.totalChanges += commit.totalChanges;
   // session.commentInsertions += commit.commentInsertions;
   // session.commentDeletions += commit.commentDeletions;
-  // session.totalCommentChanges += commit.commentInsertions;
+  session.totalCommentChanges += commit.commentInsertions;
 }
 
 function finalizeSession(session: Session) {

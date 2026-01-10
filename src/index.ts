@@ -49,17 +49,17 @@ async function main() {
     commitCountsPerRepo.push(nonTestCommitCount);
     mergeAuthorMaps(students, authors);
     printCommitsTable(commitsWithDiff);
-    // console.table(
-    //   sessions.map((s) => ({
-    //     author: s.author,
-    //     session_index: s.sessionIndex,
-    //     commits: s.commitCount,
-    //     duration_min: s.durationMinutes,
-    //     total_changes: s.totalChanges,
-    //     changes_hour: s.changesPerHour ?? 0,
-    //   }))
-    // );
-    // console.log("---------");
+    console.table(
+      sessions.map((s) => ({
+        author: s.author,
+        session_index: s.sessionIndex,
+        commits: s.commitCount,
+        duration_min: s.durationMinutes,
+        total_changes: s.totalChanges,
+        changes_hour: s.changesPerHour ?? 0,
+      }))
+    );
+    console.log("---------");
     idx++;
   }
 
@@ -80,7 +80,7 @@ async function main() {
   );
   const thresholdTotalChangesInTests = calculateLowerMadThreshold(
     authorTotalChangesInTests,
-    3
+    2
   );
 
   const criteriaRows = buildCriteriaRows(

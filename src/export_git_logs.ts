@@ -60,7 +60,7 @@ export async function getGitLogs(repoDir: string): Promise<boolean> {
   await fs.writeFile(commitsPath, commitsCsv, { encoding: "utf8" });
 
   const numstats = await runGit(
-    ["log", "--pretty=format:COMMIT:%H", "--numstat", "--no-color"],
+    ["log", "--pretty=format:COMMIT:%H", "--numstat", "-p", "--no-color"],
     repoDir
   );
 
