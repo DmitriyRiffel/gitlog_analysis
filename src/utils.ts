@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { AuthorAggregation } from "./types";
+import { runGit } from "./export_git_logs";
 
 export async function existsDir(p: string): Promise<boolean> {
   try {
@@ -131,4 +132,72 @@ export function mergeAuthorMaps(
       continue;
     }
   }
+}
+
+const CLONE_DATE_REGEX = /HEAD@\{(\d{2})\.(\d{2})\.(\d{2})\. (\d{2}):(\d{2})\}/;
+
+export function extractAndFormatCloneDate(
+  reflogOutput: string
+): Date | undefined {
+  const match = reflogOutput.match(CLONE_DATE_REGEX);
+  if (!match) return undefined;
+
+  const [, d, m, y, h, min] = match;
+
+  const date = new Date(
+    2000 + Number(y),
+    Number(m) - 1,
+    Number(d),
+    Number(h),
+    Number(min),
+    0
+  );
+
+  return Number.isNaN(date.getTime()) ? undefined : date;
+}
+
+function formatDateWithTimezone(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+
+  const year = date.getFullYear();
+  const month = pad(date.getMonth() + 1);
+  const day = pad(date.getDate());
+  const hour = pad(date.getHours());
+  const minute = pad(date.getMinutes());
+  const second = pad(date.getSeconds());
+
+  const offsetMin = -date.getTimezoneOffset();
+  const sign = offsetMin >= 0 ? "+" : "-";
+  const offsetH = pad(Math.floor(Math.abs(offsetMin) / 60));
+  const offsetM = pad(Math.abs(offsetMin) % 60);
+
+  return `${year}-${month}-${day} ${hour}:${minute}:${second} ${sign}${offsetH}${offsetM}`;
+}
+
+export async function getCloneDate(repoDir: string): Promise<Date | undefined> {
+  const reflog = await runGit(
+    ["reflog", "show", "--date=format:%d.%m.%y. %H:%M"],
+    repoDir
+  );
+
+  if (reflog.code !== 0) {
+    console.warn(`git reflog failed in ${repoDir}\n${reflog.stderr}`);
+  }
+
+  const dateObj = extractAndFormatCloneDate(reflog.stdout);
+  const cloneDate = dateObj ?? undefined;
+
+  if (!dateObj) {
+    console.warn(`Kein Klondatum gefunden in ${repoDir}`);
+  } else {
+    console.log(`Klondatum (${repoDir}): ${dateObj}`);
+  }
+
+  return cloneDate;
+}
+
+export function earlierDate(firstCommitDate: Date, cloneDate?: Date) {
+  if (!cloneDate) return firstCommitDate;
+  if (cloneDate > firstCommitDate) return firstCommitDate;
+  else return cloneDate;
 }

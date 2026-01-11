@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { spawn } from "node:child_process";
 import { countCodeChanges } from "./git_logs";
 import { parseNumstat } from "./parsers";
-import { existsDir } from "./utils";
+import { existsDir, extractAndFormatCloneDate } from "./utils";
 
 /**https://git-scm.com/docs/git-show */
 async function getFileDiff(
@@ -19,7 +19,7 @@ async function getFileDiff(
   return res.stdout;
 }
 
-function runGit(
+export function runGit(
   args: string[],
   cwd: string
 ): Promise<{ stdout: string; stderr: string; code: number }> {
@@ -42,6 +42,8 @@ export async function getGitLogs(repoDir: string): Promise<boolean> {
     console.warn(`Kein .git-Ordner in: ${repoDir}`);
     return false;
   }
+
+  // await runGit(["reset", "--hard"], repoDir);
 
   console.log(`Erzeuge Git-Logs in: ${repoDir}`);
 
@@ -103,7 +105,6 @@ export async function exportGitLogs(repoDirs: string[]) {
     const ok = await getGitLogs(repo);
     results.push({ repo, ok });
   }
-
   const okCount = results.filter((r) => r.ok).length;
   console.log(`Done. OK: ${okCount} / ${results.length}`);
 }

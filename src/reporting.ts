@@ -4,7 +4,7 @@ import {
   AuthorAggregation,
   Session,
 } from "./types";
-import { getDayAndTimeFromDate } from "./utils";
+import { earlierDate, getDayAndTimeFromDate } from "./utils";
 
 export function printCommitsTable(commits: CommitWithDiff[]) {
   console.table(
@@ -38,6 +38,7 @@ export function buildCriteriaRows(
   deadline = new Date("2024-04-28T23:59:00")
 ): CriteriaRow[] {
   return [...authors.values()].map((a) => {
+    const startDate = earlierDate(a.firstCommitDate, a.cloneDate);
     return {
       author: a.author,
       commitCount: a.commitCount,
@@ -47,14 +48,13 @@ export function buildCriteriaRows(
       areFewCommits: a.commitCount <= thresholdCommitCount,
       areFewChanges: a.totalChanges <= thresholdTotalChanges,
       areFewChangesInTests: a.totalChangesInTests <= thresholdChangesInTests,
-      firstCommitDate: a.firstCommitDate,
-      lastCommitDate: a.lastCommitDate,
+      startDate: startDate,
+      endDate: a.lastCommitDate,
       totalSessions: a.sessions.length,
       averageChangesPerHour: calculateAverageChangesPerHour(a.sessions),
       averageCommitsPerSession: calculateAverageCommitsPerSession(a.sessions),
-      lastCommitDay: getDayAndTimeFromDate(a.lastCommitDate).day,
       firstCommitOnDeadline:
-        getDayAndTimeFromDate(a.firstCommitDate).day ===
+        getDayAndTimeFromDate(startDate).day ===
         getDayAndTimeFromDate(deadline).day,
     };
   });
@@ -72,24 +72,20 @@ export function printCriteriaTable(
       changes: row.totalChanges,
       comment_changes: row.totalCommentChanges,
       tests_changes: row.totalChangesInTests,
-      first_date:
-        getDayAndTimeFromDate(row.firstCommitDate).day +
+      start_date:
+        getDayAndTimeFromDate(row.startDate).day +
         " " +
-        getDayAndTimeFromDate(row.firstCommitDate).time,
-      last_date:
-        getDayAndTimeFromDate(row.lastCommitDate).day +
+        getDayAndTimeFromDate(row.startDate).time,
+      end_date:
+        getDayAndTimeFromDate(row.endDate).day +
         " " +
-        getDayAndTimeFromDate(row.lastCommitDate).time,
+        getDayAndTimeFromDate(row.endDate).time,
       deadline:
         getDayAndTimeFromDate(deadline).day +
         " " +
         getDayAndTimeFromDate(deadline).time,
       first_on_deadline: row.firstCommitOnDeadline ? "ja" : "nein",
-      late_start: isTooLateFirstCommit(
-        row.firstCommitDate,
-        deadline,
-        plannedHours
-      )
+      late_start: isTooLateFirstCommit(row.startDate, deadline, plannedHours)
         ? "ja"
         : "nein",
       few_commits: row.areFewCommits ? "ja" : "nein",
@@ -115,7 +111,7 @@ function calculateIndex(
   if (row.areFewChanges) index += 0.125;
   if (row.areFewChangesInTests) index += 0.125;
   if (row.areFewCommits) index += 0.25;
-  if (isTooLateFirstCommit(row.firstCommitDate, deadline, plannedHours))
+  if (isTooLateFirstCommit(row.startDate, deadline, plannedHours))
     index += 0.25;
   return Number(index.toFixed(2));
 }

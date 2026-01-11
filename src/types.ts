@@ -45,8 +45,11 @@ export type AuthorAggregation = {
   author: string;
   commitCount: number;
 
-  firstCommitDate: Date;
+  repo: string;
+
   firstCommitHash: string;
+  firstCommitDate: Date;
+  cloneDate?: Date;
 
   lastCommitDate: Date;
 
@@ -67,8 +70,8 @@ export type CriteriaRow = {
   areFewCommits: boolean;
   areFewChanges: boolean;
   areFewChangesInTests: boolean;
-  firstCommitDate: Date;
-  lastCommitDate: Date;
+  startDate: Date;
+  endDate: Date;
   commitCount: number;
   totalChanges: number;
   totalCommentChanges: number;

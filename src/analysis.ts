@@ -7,7 +7,7 @@ import {
   Stats,
   ZERO_STATS,
 } from "./types";
-import { isTestFile, readLines, shouldIgnoreFile } from "./utils";
+import { getCloneDate, isTestFile, readLines, shouldIgnoreFile } from "./utils";
 
 async function createCSV(repo: string): Promise<Commit[]> {
   /** Read commit metadata lines and skip CSV header row */
@@ -200,8 +200,10 @@ export function aggregateAuthors(
     const fresh: AuthorAggregation = {
       author,
       commitCount: 0,
-      firstCommitDate: new Date(8640000000000000),
+      repo: "",
+      cloneDate: undefined,
       firstCommitHash: "",
+      firstCommitDate: new Date(8640000000000000),
       lastCommitDate: new Date(0),
       totalInsertions: 0,
       totalDeletions: 0,
@@ -247,12 +249,19 @@ export function aggregateAuthors(
 export async function analyzeRepo(repo: string) {
   const commits = createCSV(repo);
   const statsByHash = buildStatsByHash(repo);
+  const repoCloneDate = await getCloneDate(repo);
   const commitsWithDiff = buildCommitsWithDiff(
     await commits,
     await statsByHash
   );
   const sessions = buildSessions(commitsWithDiff, 120);
+
   const authors = aggregateAuthors(commitsWithDiff, sessions);
+  if (repoCloneDate) {
+    for (const a of authors.values()) {
+      a.cloneDate = repoCloneDate;
+    }
+  }
   return { commitsWithDiff, sessions, authors };
 }
 
