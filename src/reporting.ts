@@ -3,6 +3,7 @@ import {
   CriteriaRow,
   AuthorAggregation,
   Session,
+  CommitType,
 } from "./types";
 import { earlierDate, getDayAndTimeFromDate } from "./utils";
 
@@ -24,6 +25,7 @@ export function printCommitsTable(commits: CommitWithDiff[]) {
       tests_del: c.testDeletions,
       tests_total: c.totalTestChanges,
       total: c.totalChanges,
+      type: CommitType[c.commitType],
       diff_hours: Number(c.diffHours.toFixed(3)),
       diff_minutes: Number(c.diffMinutes.toFixed(3)),
       changes_hour: Number(c.changesPerHour.toFixed(2)),

@@ -1,3 +1,10 @@
+export enum CommitType {
+  SOURCE,
+  TEST,
+  COMMENT,
+  MIXED,
+}
+
 export type Stats = {
   filesChanged: number;
   sourceInsertions: number;
@@ -10,6 +17,7 @@ export type Stats = {
   testDeletions: number;
   totalTestChanges: number;
   totalChanges: number;
+  commitType: CommitType;
 };
 
 export const ZERO_STATS: Stats = {
@@ -24,6 +32,7 @@ export const ZERO_STATS: Stats = {
   testDeletions: 0,
   totalTestChanges: 0,
   totalChanges: 0,
+  commitType: CommitType.MIXED,
 };
 
 export type Commit = {
@@ -102,4 +111,48 @@ export type CliInput = {
   estimatedEffort: number;
   commitThresholdMultiplier: number;
   changesThresholdMultiplier: number;
+};
+
+export type CommitTypeRule = {
+  sourceMin: number;
+  sourceMax: number;
+  testMin: number;
+  testMax: number;
+  commentMin: number;
+  commentMax: number;
+};
+
+export const COMMIT_TYPE_RULES: Record<CommitType, CommitTypeRule> = {
+  [CommitType.SOURCE]: {
+    sourceMin: 80,
+    sourceMax: 100,
+    testMin: 0,
+    testMax: 20,
+    commentMin: 0,
+    commentMax: 20,
+  },
+  [CommitType.TEST]: {
+    sourceMin: 0,
+    sourceMax: 20,
+    testMin: 80,
+    testMax: 100,
+    commentMin: 0,
+    commentMax: 20,
+  },
+  [CommitType.COMMENT]: {
+    sourceMin: 0,
+    sourceMax: 20,
+    testMin: 0,
+    testMax: 20,
+    commentMin: 80,
+    commentMax: 100,
+  },
+  [CommitType.MIXED]: {
+    sourceMin: 50,
+    sourceMax: 60,
+    testMin: 40,
+    testMax: 50,
+    commentMin: 0,
+    commentMax: 10,
+  },
 };

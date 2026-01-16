@@ -2,12 +2,20 @@ import { parseFileStatLine, splitCommitLinePipe } from "./parsers";
 import {
   AuthorAggregation,
   Commit,
+  CommitType,
   CommitWithDiff,
   Session,
   Stats,
   ZERO_STATS,
 } from "./types";
-import { getCloneDate, isTestFile, readLines, shouldIgnoreFile } from "./utils";
+import {
+  determineCommitTypeFromChanges,
+  determineCommitTypeFromCommit,
+  getCloneDate,
+  isTestFile,
+  readLines,
+  shouldIgnoreFile,
+} from "./utils";
 
 async function createCSV(repo: string): Promise<Commit[]> {
   /** Read commit metadata lines and skip CSV header row */
@@ -80,32 +88,35 @@ export async function buildStatsByHash(
       prev.commentInsertions + (isTest ? 0 : row.commentInsertions);
     const commentDeletions =
       prev.commentDeletions + (isTest ? 0 : row.commentDeletions);
-
-    const totalChanges = prev.totalChanges;
-
     const testInsertions =
       prev.testInsertions + (isTest ? row.sourceInsertions : 0);
     const testDeletions =
       prev.testDeletions + (isTest ? row.sourceDeletions : 0);
+    const totalSourceChanges = sourceInsertions + sourceDeletions;
+    const totalCommentChanges = commentInsertions + commentDeletions;
+    const totalTestChanges = testInsertions + testDeletions;
+    const totalChanges =
+      totalCommentChanges + totalSourceChanges + totalTestChanges;
+    const type = determineCommitTypeFromChanges(
+      totalChanges,
+      totalSourceChanges,
+      totalTestChanges,
+      totalCommentChanges
+    );
 
     statsByHash.set(row.hash, {
       filesChanged: 0,
       sourceInsertions,
-      totalChanges:
-        sourceInsertions +
-        sourceDeletions +
-        commentDeletions +
-        commentInsertions +
-        testInsertions +
-        testDeletions,
+      commitType: type,
+      totalChanges: totalChanges,
       sourceDeletions,
-      totalSourceChanges: sourceInsertions + sourceDeletions,
+      totalSourceChanges: totalSourceChanges,
       commentInsertions,
       commentDeletions,
-      totalCommentChanges: commentInsertions + commentDeletions,
+      totalCommentChanges: totalCommentChanges,
       testInsertions,
       testDeletions,
-      totalTestChanges: testInsertions + testDeletions,
+      totalTestChanges: totalTestChanges,
     });
   }
 
@@ -246,7 +257,6 @@ export function aggregateAuthors(
     a.totalCommentChanges += commit.totalCommentChanges;
     a.totalTestChanges += commit.totalTestChanges;
     a.totalChanges += commit.totalChanges;
-
     if (commit.date < a.firstCommitDate) {
       a.firstCommitDate = commit.date;
       a.firstCommitHash = commit.hash;
@@ -323,6 +333,7 @@ function newSession(commit: CommitWithDiff, index: number): Session {
     startDate: commit.date,
     endDate: commit.date,
     durationMinutes: 0,
+    commitType: determineCommitTypeFromCommit(commit),
     commitCount: 0,
     filesChanged: 0,
     totalChanges: 0,

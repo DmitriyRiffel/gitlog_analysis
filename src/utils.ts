@@ -1,6 +1,11 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { AuthorAggregation } from "./types";
+import {
+  AuthorAggregation,
+  COMMIT_TYPE_RULES,
+  CommitType,
+  CommitWithDiff,
+} from "./types";
 import { runGit } from "./export_git_logs";
 
 export async function existsDir(p: string): Promise<boolean> {
@@ -200,4 +205,76 @@ export function earlierDate(firstCommitDate: Date, cloneDate?: Date) {
   if (!cloneDate) return firstCommitDate;
   if (cloneDate > firstCommitDate) return firstCommitDate;
   else return cloneDate;
+}
+
+export function determineCommitTypeFromCommit(
+  commit: CommitWithDiff
+): CommitType {
+  if (commit.totalChanges === 0) {
+    return CommitType.MIXED;
+  }
+
+  const sourcePercent = (commit.totalSourceChanges / commit.totalChanges) * 100;
+  const testPercent = (commit.totalTestChanges / commit.totalChanges) * 100;
+  const commentPercent =
+    (commit.totalCommentChanges / commit.totalChanges) * 100;
+
+  const commitTypes: CommitType[] = [
+    CommitType.SOURCE,
+    CommitType.TEST,
+    CommitType.COMMENT,
+    CommitType.MIXED,
+  ];
+  for (const type of commitTypes) {
+    const rule = COMMIT_TYPE_RULES[type];
+    if (
+      sourcePercent >= rule.sourceMin &&
+      sourcePercent <= rule.sourceMax &&
+      testPercent >= rule.testMin &&
+      testPercent <= rule.testMax &&
+      commentPercent >= rule.commentMin &&
+      commentPercent <= rule.commentMax
+    ) {
+      return type;
+    }
+  }
+
+  return CommitType.MIXED;
+}
+
+export function determineCommitTypeFromChanges(
+  totalChanges: number,
+  totalSourceChanges: number,
+  totalTestChanges: number,
+  totalCommentChanges: number
+): CommitType {
+  if (totalChanges === 0) {
+    return CommitType.MIXED;
+  }
+
+  const sourcePercent = (totalSourceChanges / totalChanges) * 100;
+  const testPercent = (totalTestChanges / totalChanges) * 100;
+  const commentPercent = (totalCommentChanges / totalChanges) * 100;
+
+  const commitTypes: CommitType[] = [
+    CommitType.SOURCE,
+    CommitType.TEST,
+    CommitType.COMMENT,
+    CommitType.MIXED,
+  ];
+  for (const type of commitTypes) {
+    const rule = COMMIT_TYPE_RULES[type];
+    if (
+      sourcePercent >= rule.sourceMin &&
+      sourcePercent <= rule.sourceMax &&
+      testPercent >= rule.testMin &&
+      testPercent <= rule.testMax &&
+      commentPercent >= rule.commentMin &&
+      commentPercent <= rule.commentMax
+    ) {
+      return type;
+    }
+  }
+
+  return CommitType.MIXED;
 }
