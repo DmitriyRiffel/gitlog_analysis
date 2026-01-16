@@ -14,15 +14,15 @@ export function printCommitsTable(commits: CommitWithDiff[]) {
       subject: c.subject,
       date: c.day + " " + c.time,
       files: c.filesChanged,
-      source_ins: c.insertions,
-      source_del: c.deletions,
-      source_total: c.totalChanges,
+      source_ins: c.sourceInsertions,
+      source_del: c.sourceDeletions,
+      source_total: c.totalSourceChanges,
       comment_ins: c.commentInsertions,
       comment_del: c.commentDeletions,
       comment_total: c.totalCommentChanges,
-      tests_ins: c.insertionsInTests,
-      tests_del: c.deletionsInTests,
-      tests_total: c.totalChangesInTests,
+      tests_ins: c.testInsertions,
+      tests_del: c.testDeletions,
+      tests_total: c.totalTestChanges,
       diff_hours: Number(c.diffHours.toFixed(3)),
       diff_minutes: Number(c.diffMinutes.toFixed(3)),
       changes_hour: Number(c.changesPerHour.toFixed(2)),
@@ -33,7 +33,7 @@ export function printCommitsTable(commits: CommitWithDiff[]) {
 export function buildCriteriaRows(
   authors: Map<string, AuthorAggregation>,
   thresholdCommitCount: number,
-  thresholdTotalChanges: number,
+  thresholdtotalSourceChanges: number,
   thresholdChangesInTests: number,
   deadline = new Date("2024-04-28T23:59:00")
 ): CriteriaRow[] {
@@ -42,12 +42,12 @@ export function buildCriteriaRows(
     return {
       author: a.author,
       commitCount: a.commitCount,
-      totalChanges: a.totalChanges,
-      totalChangesInTests: a.totalChangesInTests,
+      totalSourceChanges: a.totalSourceChanges,
+      totalTestChanges: a.totalTestChanges,
       totalCommentChanges: a.totalCommentChanges,
       areFewCommits: a.commitCount <= thresholdCommitCount,
-      areFewChanges: a.totalChanges <= thresholdTotalChanges,
-      areFewChangesInTests: a.totalChangesInTests <= thresholdChangesInTests,
+      areFewChanges: a.totalSourceChanges <= thresholdtotalSourceChanges,
+      areFewChangesInTests: a.totalTestChanges <= thresholdChangesInTests,
       startDate: startDate,
       endDate: a.lastCommitDate,
       totalSessions: a.sessions.length,
@@ -69,9 +69,9 @@ export function printCriteriaTable(
     rows.map((row) => ({
       author: row.author,
       commits: row.commitCount,
-      changes: row.totalChanges,
+      source_changes: row.totalSourceChanges,
       comment_changes: row.totalCommentChanges,
-      tests_changes: row.totalChangesInTests,
+      test_changes: row.totalTestChanges,
       start_date:
         getDayAndTimeFromDate(row.startDate).day +
         " " +
@@ -94,7 +94,7 @@ export function printCriteriaTable(
 
       sessions: row.totalSessions,
       // average_changes_hour_session: row.averageChangesPerHour,
-      // average_changes_session: row.totalChanges / row.totalSessions,
+      // average_changes_session: row.totalSourceChanges / row.totalSessions,
       avg_commits: row.averageCommitsPerSession,
       index: calculateIndex(row, deadline, plannedHours),
     }))

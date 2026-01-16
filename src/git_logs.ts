@@ -43,15 +43,15 @@ function isOnlyInlineCommentChange(
 }
 
 export function countCodeChanges(diffText: string): {
-  insertions: number;
-  deletions: number;
+  sourceInsertions: number;
+  sourceDeletions: number;
   commentInsertions: number;
   commentDeletions: number;
 } {
   const lines = diffText.split("\n");
 
-  let insertions = 0;
-  let deletions = 0;
+  let sourceInsertions = 0;
+  let sourceDeletions = 0;
   let commentInsertions = 0;
   let commentDeletions = 0;
 
@@ -86,7 +86,7 @@ export function countCodeChanges(diffText: string): {
         commentInsertions++;
       }
       if (!isWhitespaceOnly(content) && !isCommentOnly(content)) {
-        insertions++;
+        sourceInsertions++;
       }
     }
 
@@ -96,21 +96,21 @@ export function countCodeChanges(diffText: string): {
         commentDeletions++;
       }
       if (!isWhitespaceOnly(content) && !isCommentOnly(content)) {
-        deletions++;
+        sourceDeletions++;
       }
     }
   }
 
   return {
-    insertions,
-    deletions,
+    sourceInsertions,
+    sourceDeletions,
     commentInsertions: commentInsertions,
     commentDeletions: commentDeletions,
   };
 }
 
 export function countAddedLines(diffText: string): number {
-  let insertions = 0;
+  let sourceInsertions = 0;
   for (const line of diffText.split("\n")) {
     if (!line.startsWith("+")) continue;
 
@@ -125,14 +125,14 @@ export function countAddedLines(diffText: string): number {
     // Ignore Comments
     if (isCommentOnly(content)) continue;
 
-    insertions++;
+    sourceInsertions++;
   }
 
-  return insertions;
+  return sourceInsertions;
 }
 
 export function countRemovedLines(diffText: string): number {
-  let deletions = 0;
+  let sourceDeletions = 0;
 
   for (const line of diffText.split("\n")) {
     if (!line.startsWith("-")) continue;
@@ -148,8 +148,8 @@ export function countRemovedLines(diffText: string): number {
     // Ignore Comments
     if (isCommentOnly(content)) continue;
 
-    deletions++;
+    sourceDeletions++;
   }
 
-  return deletions;
+  return sourceDeletions;
 }

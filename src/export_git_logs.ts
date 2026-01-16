@@ -71,21 +71,21 @@ export async function getGitLogs(repoDir: string): Promise<boolean> {
     return false;
   }
 
-  // Create a csv file with all insertions & deletions
+  // Create a csv file with all sourceInsertions & sourceDeletions
   const statsPath = path.join(repoDir, "commits_with_stats_full.csv");
   await fs.writeFile(statsPath, numstats.stdout, { encoding: "utf8" });
 
   const commitFiles = parseNumstat(numstats.stdout);
   // console.log("commitFiles", commitFiles);
   const rows: string[] = [
-    "hash|file|insertions|deletions|comments-insertions|comments-deletions",
+    "hash|file|sourceInsertions|sourceDeletions|comments-sourceInsertions|comments-sourceDeletions",
   ];
 
   for (const { hash, file } of commitFiles) {
     const diff = await getFileDiff(repoDir, hash, file);
     const countedChanges = countCodeChanges(diff);
     rows.push(
-      `${hash}|${file}|${countedChanges.insertions}|${countedChanges.deletions}|${countedChanges.commentInsertions}|${countedChanges.commentDeletions}`
+      `${hash}|${file}|${countedChanges.sourceInsertions}|${countedChanges.sourceDeletions}|${countedChanges.commentInsertions}|${countedChanges.commentDeletions}`
     );
   }
 

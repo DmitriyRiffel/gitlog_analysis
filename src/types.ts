@@ -1,27 +1,27 @@
 export type Stats = {
   filesChanged: number;
-  insertions: number;
+  sourceInsertions: number;
   commentInsertions: number;
-  deletions: number;
+  sourceDeletions: number;
   commentDeletions: number;
-  totalChanges: number;
+  totalSourceChanges: number;
   totalCommentChanges: number;
-  insertionsInTests: number;
-  deletionsInTests: number;
-  totalChangesInTests: number;
+  testInsertions: number;
+  testDeletions: number;
+  totalTestChanges: number;
 };
 
 export const ZERO_STATS: Stats = {
   filesChanged: 0,
-  insertions: 0,
-  deletions: 0,
-  totalChanges: 0,
+  sourceInsertions: 0,
+  sourceDeletions: 0,
+  totalSourceChanges: 0,
   commentInsertions: 0,
   commentDeletions: 0,
   totalCommentChanges: 0,
-  insertionsInTests: 0,
-  deletionsInTests: 0,
-  totalChangesInTests: 0,
+  testInsertions: 0,
+  testDeletions: 0,
+  totalTestChanges: 0,
 };
 
 export type Commit = {
@@ -59,9 +59,9 @@ export type AuthorAggregation = {
   totalCommentDeletions: number;
   totalInsertionsInTests: number;
   totalDeletionsInTests: number;
-  totalChanges: number;
+  totalSourceChanges: number;
   totalCommentChanges: number;
-  totalChangesInTests: number;
+  totalTestChanges: number;
   sessions: Session[];
 };
 
@@ -73,9 +73,9 @@ export type CriteriaRow = {
   startDate: Date;
   endDate: Date;
   commitCount: number;
-  totalChanges: number;
+  totalSourceChanges: number;
   totalCommentChanges: number;
-  totalChangesInTests: number;
+  totalTestChanges: number;
   totalSessions: number;
   averageChangesPerHour: number;
   averageCommitsPerSession: number;

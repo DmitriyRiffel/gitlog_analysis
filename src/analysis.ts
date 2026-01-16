@@ -69,32 +69,34 @@ export async function buildStatsByHash(
     if (!filesByHash.has(row.hash)) filesByHash.set(row.hash, new Set());
     filesByHash.get(row.hash)?.add(row.file);
 
-    // Sum insertions/deletions per commit hash
+    // Sum sourceInsertions/sourceDeletions per commit hash
     const prev = statsByHash.get(row.hash) ?? { ...ZERO_STATS };
 
-    const insertions = prev.insertions + (isTest ? 0 : row.insertions);
-    const deletions = prev.deletions + (isTest ? 0 : row.deletions);
+    const sourceInsertions =
+      prev.sourceInsertions + (isTest ? 0 : row.sourceInsertions);
+    const sourceDeletions =
+      prev.sourceDeletions + (isTest ? 0 : row.sourceDeletions);
     const commentInsertions =
       prev.commentInsertions + (isTest ? 0 : row.commentInsertions);
     const commentDeletions =
       prev.commentDeletions + (isTest ? 0 : row.commentDeletions);
 
-    const insertionsInTests =
-      prev.insertionsInTests + (isTest ? row.insertions : 0);
-    const deletionsInTests =
-      prev.deletionsInTests + (isTest ? row.deletions : 0);
+    const testInsertions =
+      prev.testInsertions + (isTest ? row.sourceInsertions : 0);
+    const testDeletions =
+      prev.testDeletions + (isTest ? row.sourceDeletions : 0);
 
     statsByHash.set(row.hash, {
       filesChanged: 0,
-      insertions,
-      deletions,
-      totalChanges: insertions + deletions,
+      sourceInsertions,
+      sourceDeletions,
+      totalSourceChanges: sourceInsertions + sourceDeletions,
       commentInsertions,
       commentDeletions,
       totalCommentChanges: commentInsertions + commentDeletions,
-      insertionsInTests,
-      deletionsInTests,
-      totalChangesInTests: insertionsInTests + deletionsInTests,
+      testInsertions,
+      testDeletions,
+      totalTestChanges: testInsertions + testDeletions,
     });
   }
 
@@ -157,13 +159,13 @@ export function buildCommitsWithDiff(
     // Compute "speed" metrics; avoid division by zero
     const changesPerHour =
       diffHours !== 0
-        ? (stats.totalChanges +
-            stats.totalChangesInTests +
+        ? (stats.totalSourceChanges +
+            stats.totalTestChanges +
             stats.totalCommentChanges) /
           diffHours
         : 0;
     const changesPerMinute =
-      diffMinutes !== 0 ? stats.totalChanges / diffMinutes : 0;
+      diffMinutes !== 0 ? stats.totalSourceChanges / diffMinutes : 0;
 
     return {
       ...commit,
@@ -179,8 +181,8 @@ export function buildCommitsWithDiff(
 
   return rows.filter(
     (r) =>
-      r.totalChanges > 0 ||
-      r.totalChangesInTests > 0 ||
+      r.totalSourceChanges > 0 ||
+      r.totalTestChanges > 0 ||
       r.totalCommentChanges > 0
   );
   return rows;
@@ -209,11 +211,11 @@ export function aggregateAuthors(
       totalDeletions: 0,
       totalCommentInsertions: 0,
       totalCommentDeletions: 0,
-      totalChanges: 0,
+      totalSourceChanges: 0,
       totalCommentChanges: 0,
       totalInsertionsInTests: 0,
       totalDeletionsInTests: 0,
-      totalChangesInTests: 0,
+      totalTestChanges: 0,
       sessions: sessionsByAuthor.get(author) ?? [],
     };
     map.set(author, fresh);
@@ -223,16 +225,16 @@ export function aggregateAuthors(
   for (const commit of commits) {
     const a = getOrCreate(commit.author);
 
-    if (commit.totalChanges > 0) {
+    if (commit.totalSourceChanges > 0) {
       a.commitCount += 1;
     }
-    a.totalInsertions += commit.insertions;
-    a.totalDeletions += commit.deletions;
-    a.totalChanges += commit.totalChanges;
+    a.totalInsertions += commit.sourceInsertions;
+    a.totalDeletions += commit.sourceDeletions;
+    a.totalSourceChanges += commit.totalSourceChanges;
     a.totalCommentInsertions += commit.commentInsertions;
     a.totalCommentDeletions += commit.commentDeletions;
     a.totalCommentChanges += commit.totalCommentChanges;
-    a.totalChangesInTests += commit.totalChangesInTests;
+    a.totalTestChanges += commit.totalTestChanges;
 
     if (commit.date < a.firstCommitDate) {
       a.firstCommitDate = commit.date;
@@ -312,15 +314,15 @@ function newSession(commit: CommitWithDiff, index: number): Session {
     durationMinutes: 0,
     commitCount: 0,
     filesChanged: 0,
-    insertions: 0,
-    deletions: 0,
-    totalChanges: 0,
+    sourceInsertions: 0,
+    sourceDeletions: 0,
+    totalSourceChanges: 0,
     commentInsertions: 0,
     commentDeletions: 0,
     totalCommentChanges: 0,
-    insertionsInTests: 0,
-    deletionsInTests: 0,
-    totalChangesInTests: 0,
+    testInsertions: 0,
+    testDeletions: 0,
+    totalTestChanges: 0,
   };
 }
 
@@ -329,9 +331,9 @@ function addCommit(session: Session, commit: CommitWithDiff) {
   session.commitCount += 1;
 
   session.filesChanged += commit.filesChanged;
-  session.insertions += commit.insertions;
-  session.deletions += commit.deletions;
-  session.totalChanges += commit.totalChanges;
+  session.sourceInsertions += commit.sourceInsertions;
+  session.sourceDeletions += commit.sourceDeletions;
+  session.totalSourceChanges += commit.totalSourceChanges;
   // session.commentInsertions += commit.commentInsertions;
   // session.commentDeletions += commit.commentDeletions;
   session.totalCommentChanges += commit.commentInsertions;
@@ -345,7 +347,7 @@ function finalizeSession(session: Session) {
 
   if (session.durationMinutes > 0) {
     session.changesPerHour =
-      session.totalChanges / (session.durationMinutes / 60);
+      session.totalSourceChanges / (session.durationMinutes / 60);
   } else {
     session.changesPerHour = 0;
   }

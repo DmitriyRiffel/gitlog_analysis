@@ -36,7 +36,7 @@ async function main() {
   for (const repo of repoDirs) {
     const { commitsWithDiff, authors, sessions } = await analyzeRepo(repo);
     const nonTestCommitCount = commitsWithDiff.filter(
-      (c) => c.totalChanges > 0 || c.totalCommentChanges > 0
+      (c) => c.totalSourceChanges > 0 || c.totalCommentChanges > 0
     ).length;
     let idx = 0;
     console.log(
@@ -55,7 +55,7 @@ async function main() {
         session_index: s.sessionIndex,
         commits: s.commitCount,
         duration_min: s.durationMinutes,
-        total_changes: s.totalChanges,
+        total_changes: s.totalSourceChanges,
         changes_hour: s.changesPerHour ?? 0,
       }))
     );
@@ -63,47 +63,47 @@ async function main() {
     idx++;
   }
 
-  const authorTotalChanges = Array.from(students.values()).map(
-    (a) => a.totalChanges
+  const authortotalSourceChanges = Array.from(students.values()).map(
+    (a) => a.totalSourceChanges
   );
-  const authorTotalChangesInTests = Array.from(students.values()).map(
-    (a) => a.totalChangesInTests
+  const authortotalSourceChangesInTests = Array.from(students.values()).map(
+    (a) => a.totalTestChanges
   );
 
   const thresholdCommitCount = calculateLowerMadThreshold(
     commitCountsPerRepo,
     cli.commitThresholdMultiplier
   );
-  const thresholdTotalChanges = calculateLowerMadThreshold(
-    authorTotalChanges,
+  const thresholdtotalSourceChanges = calculateLowerMadThreshold(
+    authortotalSourceChanges,
     1.5
   );
-  const thresholdTotalChangesInTests = calculateLowerMadThreshold(
-    authorTotalChangesInTests,
+  const thresholdtotalSourceChangesInTests = calculateLowerMadThreshold(
+    authortotalSourceChangesInTests,
     2
   );
 
   const criteriaRows = buildCriteriaRows(
     students,
     thresholdCommitCount,
-    thresholdTotalChanges,
-    thresholdTotalChangesInTests,
+    thresholdtotalSourceChanges,
+    thresholdtotalSourceChangesInTests,
     cli.deadline
   );
   let count: number = 0;
-  for (const changes of authorTotalChanges) {
+  for (const changes of authortotalSourceChanges) {
     count += changes;
   }
   console.log("Untere Grenze für Commits:", thresholdCommitCount);
   console.log(
     "Untere Grenze für Changes:",
-    thresholdTotalChanges,
+    thresholdtotalSourceChanges,
     "Mittelwert:",
-    count / authorTotalChanges.length
+    count / authortotalSourceChanges.length
   );
   console.log(
     "Untere Grenze für Tests-Änderungen",
-    thresholdTotalChangesInTests
+    thresholdtotalSourceChangesInTests
   );
   printCriteriaTable(criteriaRows, cli.deadline, cli.estimatedEffort);
 }

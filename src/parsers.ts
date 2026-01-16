@@ -13,8 +13,8 @@ export function splitCommitLinePipe(
 export function parseFileStatLine(line: string): {
   hash: string;
   file: string;
-  insertions: number;
-  deletions: number;
+  sourceInsertions: number;
+  sourceDeletions: number;
   commentInsertions: number;
   commentDeletions: number;
 } | null {
@@ -29,16 +29,16 @@ export function parseFileStatLine(line: string): {
   const commentInsertionsStr = parts[4].trim();
   const commentDeletionsStr = parts[5].trim();
 
-  const insertions = Number(insertionsStr);
-  const deletions = Number(deletionsStr);
+  const sourceInsertions = Number(insertionsStr);
+  const sourceDeletions = Number(deletionsStr);
   const commentInsertions = Number(commentInsertionsStr);
   const commentDeletions = Number(commentDeletionsStr);
 
   if (!/^[0-9a-f]{40}$/i.test(hash)) return null;
   if (!file) return null;
   if (
-    !Number.isFinite(insertions) ||
-    !Number.isFinite(deletions) ||
+    !Number.isFinite(sourceInsertions) ||
+    !Number.isFinite(sourceDeletions) ||
     !Number.isFinite(commentDeletions) ||
     !Number.isFinite(commentInsertions)
   )
@@ -47,8 +47,8 @@ export function parseFileStatLine(line: string): {
   return {
     hash,
     file,
-    insertions,
-    deletions,
+    sourceInsertions,
+    sourceDeletions,
     commentInsertions,
     commentDeletions,
   };
