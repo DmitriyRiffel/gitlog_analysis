@@ -23,6 +23,7 @@ export function printCommitsTable(commits: CommitWithDiff[]) {
       tests_ins: c.testInsertions,
       tests_del: c.testDeletions,
       tests_total: c.totalTestChanges,
+      total: c.totalChanges,
       diff_hours: Number(c.diffHours.toFixed(3)),
       diff_minutes: Number(c.diffMinutes.toFixed(3)),
       changes_hour: Number(c.changesPerHour.toFixed(2)),
@@ -45,6 +46,7 @@ export function buildCriteriaRows(
       totalSourceChanges: a.totalSourceChanges,
       totalTestChanges: a.totalTestChanges,
       totalCommentChanges: a.totalCommentChanges,
+      totalChanges: a.totalChanges,
       areFewCommits: a.commitCount <= thresholdCommitCount,
       areFewChanges: a.totalSourceChanges <= thresholdtotalSourceChanges,
       areFewChangesInTests: a.totalTestChanges <= thresholdChangesInTests,
@@ -72,6 +74,7 @@ export function printCriteriaTable(
       source_changes: row.totalSourceChanges,
       comment_changes: row.totalCommentChanges,
       test_changes: row.totalTestChanges,
+      total_changes: row.totalChanges,
       start_date:
         getDayAndTimeFromDate(row.startDate).day +
         " " +

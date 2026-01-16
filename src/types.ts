@@ -9,6 +9,7 @@ export type Stats = {
   testInsertions: number;
   testDeletions: number;
   totalTestChanges: number;
+  totalChanges: number;
 };
 
 export const ZERO_STATS: Stats = {
@@ -22,6 +23,7 @@ export const ZERO_STATS: Stats = {
   testInsertions: 0,
   testDeletions: 0,
   totalTestChanges: 0,
+  totalChanges: 0,
 };
 
 export type Commit = {
@@ -53,15 +55,16 @@ export type AuthorAggregation = {
 
   lastCommitDate: Date;
 
-  totalInsertions: number;
-  totalDeletions: number;
+  totalSourceInsertions: number;
+  totalSourceDeletions: number;
   totalCommentInsertions: number;
   totalCommentDeletions: number;
-  totalInsertionsInTests: number;
-  totalDeletionsInTests: number;
+  totalTestInsertions: number;
+  totalTestDeletions: number;
   totalSourceChanges: number;
   totalCommentChanges: number;
   totalTestChanges: number;
+  totalChanges: number;
   sessions: Session[];
 };
 
@@ -76,6 +79,7 @@ export type CriteriaRow = {
   totalSourceChanges: number;
   totalCommentChanges: number;
   totalTestChanges: number;
+  totalChanges: number;
   totalSessions: number;
   averageChangesPerHour: number;
   averageCommitsPerSession: number;

@@ -81,6 +81,8 @@ export async function buildStatsByHash(
     const commentDeletions =
       prev.commentDeletions + (isTest ? 0 : row.commentDeletions);
 
+    const totalChanges = prev.totalChanges;
+
     const testInsertions =
       prev.testInsertions + (isTest ? row.sourceInsertions : 0);
     const testDeletions =
@@ -89,6 +91,13 @@ export async function buildStatsByHash(
     statsByHash.set(row.hash, {
       filesChanged: 0,
       sourceInsertions,
+      totalChanges:
+        sourceInsertions +
+        sourceDeletions +
+        commentDeletions +
+        commentInsertions +
+        testInsertions +
+        testDeletions,
       sourceDeletions,
       totalSourceChanges: sourceInsertions + sourceDeletions,
       commentInsertions,
@@ -207,15 +216,16 @@ export function aggregateAuthors(
       firstCommitHash: "",
       firstCommitDate: new Date(8640000000000000),
       lastCommitDate: new Date(0),
-      totalInsertions: 0,
-      totalDeletions: 0,
+      totalSourceInsertions: 0,
+      totalSourceDeletions: 0,
       totalCommentInsertions: 0,
       totalCommentDeletions: 0,
       totalSourceChanges: 0,
       totalCommentChanges: 0,
-      totalInsertionsInTests: 0,
-      totalDeletionsInTests: 0,
+      totalTestInsertions: 0,
+      totalTestDeletions: 0,
       totalTestChanges: 0,
+      totalChanges: 0,
       sessions: sessionsByAuthor.get(author) ?? [],
     };
     map.set(author, fresh);
@@ -228,13 +238,14 @@ export function aggregateAuthors(
     if (commit.totalSourceChanges > 0) {
       a.commitCount += 1;
     }
-    a.totalInsertions += commit.sourceInsertions;
-    a.totalDeletions += commit.sourceDeletions;
+    a.totalSourceInsertions += commit.sourceInsertions;
+    a.totalSourceDeletions += commit.sourceDeletions;
     a.totalSourceChanges += commit.totalSourceChanges;
     a.totalCommentInsertions += commit.commentInsertions;
     a.totalCommentDeletions += commit.commentDeletions;
     a.totalCommentChanges += commit.totalCommentChanges;
     a.totalTestChanges += commit.totalTestChanges;
+    a.totalChanges += commit.totalChanges;
 
     if (commit.date < a.firstCommitDate) {
       a.firstCommitDate = commit.date;
@@ -314,6 +325,7 @@ function newSession(commit: CommitWithDiff, index: number): Session {
     durationMinutes: 0,
     commitCount: 0,
     filesChanged: 0,
+    totalChanges: 0,
     sourceInsertions: 0,
     sourceDeletions: 0,
     totalSourceChanges: 0,
