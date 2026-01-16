@@ -44,17 +44,21 @@ export function buildCriteriaRows(
     const startDate = earlierDate(a.firstCommitDate, a.cloneDate);
     return {
       author: a.author,
-      commitCount: a.commitCount,
+      totalCommits: a.totalCommits,
       totalSourceChanges: a.totalSourceChanges,
       totalTestChanges: a.totalTestChanges,
       totalCommentChanges: a.totalCommentChanges,
       totalChanges: a.totalChanges,
-      areFewCommits: a.commitCount <= thresholdCommitCount,
+      areFewCommits: a.totalCommits <= thresholdCommitCount,
       areFewChanges: a.totalSourceChanges <= thresholdtotalSourceChanges,
       areFewChangesInTests: a.totalTestChanges <= thresholdChangesInTests,
       startDate: startDate,
       endDate: a.lastCommitDate,
       totalSessions: a.sessions.length,
+      totalCommentCommits: a.totalCommentCommits,
+      totalSourceCommits: a.totalSourceCommits,
+      totalTestCommits: a.totalTestCommits,
+      totalMixedCommits: a.totalMixedCommits,
       averageChangesPerHour: calculateAverageChangesPerHour(a.sessions),
       averageCommitsPerSession: calculateAverageCommitsPerSession(a.sessions),
       firstCommitOnDeadline:
@@ -72,7 +76,11 @@ export function printCriteriaTable(
   console.table(
     rows.map((row) => ({
       author: row.author,
-      commits: row.commitCount,
+      total_commits: row.totalCommits,
+      mixed_commits: row.totalMixedCommits,
+      source_commits: row.totalSourceCommits,
+      test_commits: row.totalTestCommits,
+      comment_commits: row.totalCommentCommits,
       source_changes: row.totalSourceChanges,
       comment_changes: row.totalCommentChanges,
       test_changes: row.totalTestChanges,

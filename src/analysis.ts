@@ -221,7 +221,6 @@ export function aggregateAuthors(
 
     const fresh: AuthorAggregation = {
       author,
-      commitCount: 0,
       repo: "",
       cloneDate: undefined,
       firstCommitHash: "",
@@ -237,6 +236,11 @@ export function aggregateAuthors(
       totalTestDeletions: 0,
       totalTestChanges: 0,
       totalChanges: 0,
+      totalCommentCommits: 0,
+      totalSourceCommits: 0,
+      totalTestCommits: 0,
+      totalMixedCommits: 0,
+      totalCommits: 0,
       sessions: sessionsByAuthor.get(author) ?? [],
     };
     map.set(author, fresh);
@@ -246,9 +250,7 @@ export function aggregateAuthors(
   for (const commit of commits) {
     const a = getOrCreate(commit.author);
 
-    if (commit.totalSourceChanges > 0) {
-      a.commitCount += 1;
-    }
+    a.totalCommits += 1;
     a.totalSourceInsertions += commit.sourceInsertions;
     a.totalSourceDeletions += commit.sourceDeletions;
     a.totalSourceChanges += commit.totalSourceChanges;
@@ -264,6 +266,21 @@ export function aggregateAuthors(
 
     if (commit.date > a.lastCommitDate) {
       a.lastCommitDate = commit.date;
+    }
+
+    switch (commit.commitType) {
+      case CommitType.SOURCE:
+        a.totalSourceCommits += 1;
+        break;
+      case CommitType.TEST:
+        a.totalTestCommits += 1;
+        break;
+      case CommitType.COMMENT:
+        a.totalCommentCommits += 1;
+        break;
+      case CommitType.MIXED:
+        a.totalMixedCommits += 1;
+        break;
     }
   }
   return map;

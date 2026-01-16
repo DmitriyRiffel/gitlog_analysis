@@ -6,8 +6,27 @@ export async function askCliInput(): Promise<CliInput> {
   const rl = readline.createInterface({ input, output });
 
   /** Only for Development */
-  const DEFAULT_REPO = `F:/Hochschule/BA/sample1`;
-  const DEFAULT_DEADLINE = `2024-04-28`;
+  const DEFAULT_REPO: string = `F:/Hochschule/BA/sample5`;
+  let DEFAULT_DEADLINE: string;
+  switch (DEFAULT_REPO) {
+    case "F:/Hochschule/BA/sample1":
+      DEFAULT_DEADLINE = "2024-04-28";
+      break;
+    case "F:/Hochschule/BA/sample2":
+      DEFAULT_DEADLINE = "2023-04-06";
+      break;
+    case "F:/Hochschule/BA/sample3":
+      DEFAULT_DEADLINE = "2024-06-02";
+      break;
+    case "F:/Hochschule/BA/sample4":
+      DEFAULT_DEADLINE = "2025-05-11";
+      break;
+    case "F:/Hochschule/BA/sample5":
+      DEFAULT_DEADLINE = "2025-06-08";
+      break;
+    default:
+      DEFAULT_DEADLINE = "1000-01-01";
+  }
   /** ------ */
 
   const DEFAULT_COMMIT_THRESHOLD_MULT = 2;

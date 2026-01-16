@@ -54,7 +54,6 @@ export type CommitWithDiff = Commit &
 
 export type AuthorAggregation = {
   author: string;
-  commitCount: number;
 
   repo: string;
 
@@ -74,6 +73,11 @@ export type AuthorAggregation = {
   totalCommentChanges: number;
   totalTestChanges: number;
   totalChanges: number;
+  totalCommentCommits: number;
+  totalSourceCommits: number;
+  totalTestCommits: number;
+  totalMixedCommits: number;
+  totalCommits: number;
   sessions: Session[];
 };
 
@@ -84,12 +88,16 @@ export type CriteriaRow = {
   areFewChangesInTests: boolean;
   startDate: Date;
   endDate: Date;
-  commitCount: number;
   totalSourceChanges: number;
   totalCommentChanges: number;
   totalTestChanges: number;
   totalChanges: number;
   totalSessions: number;
+  totalCommentCommits: number;
+  totalSourceCommits: number;
+  totalTestCommits: number;
+  totalMixedCommits: number;
+  totalCommits: number;
   averageChangesPerHour: number;
   averageCommitsPerSession: number;
   firstCommitOnDeadline: boolean;
