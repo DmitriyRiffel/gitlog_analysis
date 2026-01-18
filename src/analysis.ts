@@ -208,12 +208,14 @@ export function buildCommitsWithDiff(
   return rows;
 }
 
-export function aggregateAuthors(
+function aggregateAuthors(
   commits: CommitWithDiff[],
-  sessions: Session[]
+  sessions: Session[],
+  skipFirstCommit: boolean
 ): Map<string, AuthorAggregation> {
   const map = new Map<string, AuthorAggregation>();
   const sessionsByAuthor = aggregateSessionsByAuthor(sessions);
+  const firstCommitSkipped = new Map<string, boolean>();
 
   function getOrCreate(author: string): AuthorAggregation {
     const existing = map.get(author);
@@ -249,6 +251,12 @@ export function aggregateAuthors(
 
   for (const commit of commits) {
     const a = getOrCreate(commit.author);
+
+    if (skipFirstCommit)
+      if (!firstCommitSkipped.get(commit.author)) {
+        firstCommitSkipped.set(commit.author, true);
+        continue;
+      }
 
     a.totalCommits += 1;
     a.totalSourceInsertions += commit.sourceInsertions;
@@ -286,7 +294,7 @@ export function aggregateAuthors(
   return map;
 }
 
-export async function analyzeRepo(repo: string) {
+export async function analyzeRepo(repo: string, skipFirstCommit: boolean) {
   const commits = createCSV(repo);
   const statsByHash = buildStatsByHash(repo);
   const repoCloneDate = await getCloneDate(repo);
@@ -296,7 +304,7 @@ export async function analyzeRepo(repo: string) {
   );
   const sessions = buildSessions(commitsWithDiff, 120);
 
-  const authors = aggregateAuthors(commitsWithDiff, sessions);
+  const authors = aggregateAuthors(commitsWithDiff, sessions, skipFirstCommit);
   if (repoCloneDate) {
     for (const a of authors.values()) {
       a.cloneDate = repoCloneDate;

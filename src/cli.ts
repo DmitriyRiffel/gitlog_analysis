@@ -35,6 +35,12 @@ export async function askCliInput(): Promise<CliInput> {
   try {
     const repoPath =
       (await rl.question(`Pfad zum Ordner mit Repos: `)).trim() || DEFAULT_REPO;
+    const skipFirstCommitAnswer = (
+      await rl.question("Ersten Commit überspringen? (y/n, Default=y): ")
+    )
+      .trim()
+      .toLowerCase();
+
     const deadlineStr =
       (await rl.question(`Deadline (YYYY-MM-DD): `)).trim() || DEFAULT_DEADLINE;
     const commitThresholdMultiplierStr =
@@ -55,8 +61,15 @@ export async function askCliInput(): Promise<CliInput> {
           `Geschätzte Aufwand in Stunden (Default = ${DEFAULT_ESTIMATED_EFFORT} St.): `
         )
       ).trim() || DEFAULT_ESTIMATED_EFFORT;
+    const skipFirstCommit =
+      skipFirstCommitAnswer === ""
+        ? true
+        : skipFirstCommitAnswer === "y" ||
+          skipFirstCommitAnswer === "yes" ||
+          skipFirstCommitAnswer === "true";
     return {
       repoPath,
+      skipFirstCommit: skipFirstCommit,
       deadline: new Date(`${deadlineStr}T23:59:59`),
       estimatedEffort: Number(estimatedEffortStr),
       commitThresholdMultiplier: Number(commitThresholdMultiplierStr),

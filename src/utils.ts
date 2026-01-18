@@ -4,6 +4,7 @@ import {
   AuthorAggregation,
   COMMIT_TYPE_RULES,
   CommitType,
+  CommitTypeRule,
   CommitWithDiff,
 } from "./types";
 import { runGit } from "./export_git_logs";
@@ -87,7 +88,7 @@ function calculateMad(values: number[]): number {
 
 export function calculateLowerMadThreshold(
   values: number[],
-  k: number = 2
+  k: number = 2,
 ): number {
   const median = calculateMedian(values);
   const mad = calculateMad(values);
@@ -128,7 +129,7 @@ export function isTestFile(file: string): boolean {
 
 export function mergeAuthorMaps(
   into: Map<string, AuthorAggregation>,
-  from: Map<string, AuthorAggregation>
+  from: Map<string, AuthorAggregation>,
 ) {
   for (const [author, agg] of from.entries()) {
     const prev = into.get(author);
@@ -142,7 +143,7 @@ export function mergeAuthorMaps(
 const CLONE_DATE_REGEX = /HEAD@\{(\d{2})\.(\d{2})\.(\d{2})\. (\d{2}):(\d{2})\}/;
 
 export function extractAndFormatCloneDate(
-  reflogOutput: string
+  reflogOutput: string,
 ): Date | undefined {
   const match = reflogOutput.match(CLONE_DATE_REGEX);
   if (!match) return undefined;
@@ -155,7 +156,7 @@ export function extractAndFormatCloneDate(
     Number(d),
     Number(h),
     Number(min),
-    0
+    0,
   );
 
   return Number.isNaN(date.getTime()) ? undefined : date;
@@ -182,7 +183,7 @@ function formatDateWithTimezone(date: Date): string {
 export async function getCloneDate(repoDir: string): Promise<Date | undefined> {
   const reflog = await runGit(
     ["reflog", "show", "--date=format:%d.%m.%y. %H:%M"],
-    repoDir
+    repoDir,
   );
 
   if (reflog.code !== 0) {
@@ -208,7 +209,7 @@ export function earlierDate(firstCommitDate: Date, cloneDate?: Date) {
 }
 
 export function determineCommitTypeFromCommit(
-  commit: CommitWithDiff
+  commit: CommitWithDiff,
 ): CommitType {
   if (commit.totalChanges === 0) {
     return CommitType.MIXED;
@@ -246,16 +247,14 @@ export function determineCommitTypeFromChanges(
   totalChanges: number,
   totalSourceChanges: number,
   totalTestChanges: number,
-  totalCommentChanges: number
+  totalCommentChanges: number,
 ): CommitType {
   if (totalChanges === 0) {
     return CommitType.MIXED;
   }
-
   const sourcePercent = (totalSourceChanges / totalChanges) * 100;
   const testPercent = (totalTestChanges / totalChanges) * 100;
   const commentPercent = (totalCommentChanges / totalChanges) * 100;
-
   const commitTypes: CommitType[] = [
     CommitType.SOURCE,
     CommitType.TEST,
@@ -275,6 +274,9 @@ export function determineCommitTypeFromChanges(
       return type;
     }
   }
-
   return CommitType.MIXED;
+}
+
+export function calculatePercent(total: number, part: number) {
+  return ((part / total) * 100).toFixed(2);
 }

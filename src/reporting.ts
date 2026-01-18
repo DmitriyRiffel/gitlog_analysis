@@ -5,7 +5,7 @@ import {
   Session,
   CommitType,
 } from "./types";
-import { earlierDate, getDayAndTimeFromDate } from "./utils";
+import { calculatePercent, earlierDate, getDayAndTimeFromDate } from "./utils";
 
 export function printCommitsTable(commits: CommitWithDiff[]) {
   console.table(
@@ -76,15 +76,37 @@ export function printCriteriaTable(
   console.table(
     rows.map((row) => ({
       author: row.author,
-      total_commits: row.totalCommits,
-      mixed_commits: row.totalMixedCommits,
-      source_commits: row.totalSourceCommits,
-      test_commits: row.totalTestCommits,
-      comment_commits: row.totalCommentCommits,
-      source_changes: row.totalSourceChanges,
-      comment_changes: row.totalCommentChanges,
-      test_changes: row.totalTestChanges,
-      total_changes: row.totalChanges,
+      total_commits: `${row.totalCommits}`,
+      mixed_commits: `${row.totalMixedCommits} (${calculatePercent(
+        row.totalCommits,
+        row.totalMixedCommits
+      )} %)`,
+      source_commits: `${row.totalSourceCommits} (${calculatePercent(
+        row.totalCommits,
+        row.totalSourceCommits
+      )} %)`,
+      test_commits: `${row.totalTestCommits} (${calculatePercent(
+        row.totalCommits,
+        row.totalTestCommits
+      )} %)`,
+      comment_commits: `${row.totalCommentCommits} (${calculatePercent(
+        row.totalCommits,
+        row.totalCommentCommits
+      )} %)`,
+      source_changes: `${row.totalSourceChanges} (${calculatePercent(
+        row.totalChanges,
+        row.totalSourceChanges
+      )} %)`,
+
+      comment_changes: `${row.totalCommentChanges} (${calculatePercent(
+        row.totalChanges,
+        row.totalCommentChanges
+      )} %)`,
+
+      test_changes: `${row.totalTestChanges} (${calculatePercent(
+        row.totalChanges,
+        row.totalTestChanges
+      )} %)`,
       start_date:
         getDayAndTimeFromDate(row.startDate).day +
         " " +

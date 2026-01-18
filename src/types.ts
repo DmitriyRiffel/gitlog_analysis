@@ -115,6 +115,7 @@ export type Session = Stats & {
 
 export type CliInput = {
   repoPath: string;
+  skipFirstCommit: boolean;
   deadline: Date;
   estimatedEffort: number;
   commitThresholdMultiplier: number;
@@ -141,18 +142,18 @@ export const COMMIT_TYPE_RULES: Record<CommitType, CommitTypeRule> = {
   },
   [CommitType.TEST]: {
     sourceMin: 0,
-    sourceMax: 20,
-    testMin: 80,
+    sourceMax: 30,
+    testMin: 70,
     testMax: 100,
     commentMin: 0,
-    commentMax: 20,
+    commentMax: 30,
   },
   [CommitType.COMMENT]: {
     sourceMin: 0,
-    sourceMax: 20,
+    sourceMax: 25,
     testMin: 0,
-    testMax: 20,
-    commentMin: 80,
+    testMax: 25,
+    commentMin: 85,
     commentMax: 100,
   },
   [CommitType.MIXED]: {

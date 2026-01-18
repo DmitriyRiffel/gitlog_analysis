@@ -16,9 +16,7 @@ import {
 async function main() {
   const cli = await askCliInput();
 
-  const rootDir = "F:/Hochschule/BA/sample1";
   const repoDirs = await findGitRepos(cli.repoPath);
-  // const repoDirs = await findGitRepos(rootDir);
   console.log("\nRepository:", cli.repoPath);
   console.log(
     "Deadline:",
@@ -34,7 +32,10 @@ async function main() {
   const students = new Map<string, AuthorAggregation>();
 
   for (const repo of repoDirs) {
-    const { commitsWithDiff, authors, sessions } = await analyzeRepo(repo);
+    const { commitsWithDiff, authors, sessions } = await analyzeRepo(
+      repo,
+      cli.skipFirstCommit
+    );
     const nonTestCommitCount = commitsWithDiff.filter(
       (c) => c.totalSourceChanges > 0 || c.totalCommentChanges > 0
     ).length;
