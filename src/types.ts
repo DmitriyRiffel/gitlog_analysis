@@ -65,20 +65,27 @@ export type AuthorAggregation = {
 
   totalSourceInsertions: number;
   totalSourceDeletions: number;
+
   totalCommentInsertions: number;
   totalCommentDeletions: number;
+
   totalTestInsertions: number;
   totalTestDeletions: number;
+
   totalSourceChanges: number;
   totalCommentChanges: number;
   totalTestChanges: number;
   totalChanges: number;
+
   totalCommentCommits: number;
   totalSourceCommits: number;
   totalTestCommits: number;
   totalMixedCommits: number;
   totalCommits: number;
+
   sessions: Session[];
+
+  bundling_coeff: number;
 };
 
 export type CriteriaRow = {
@@ -101,6 +108,7 @@ export type CriteriaRow = {
   averageChangesPerHour: number;
   averageCommitsPerSession: number;
   firstCommitOnDeadline: boolean;
+  bundling_coeff: number;
 };
 
 export type Session = Stats & {

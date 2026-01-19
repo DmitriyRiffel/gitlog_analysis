@@ -2,18 +2,18 @@ import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { CliInput } from "./types";
 
-export async function askCliInput(): Promise<CliInput> {
+export async function askCliInput(repoName: string): Promise<CliInput> {
   const rl = readline.createInterface({ input, output });
 
   /** Only for Development */
-  const DEFAULT_REPO: string = `F:/Hochschule/BA/sample5`;
+  const DEFAULT_REPO: string = `F:/Hochschule/BA/${repoName}`;
   let DEFAULT_DEADLINE: string;
   switch (DEFAULT_REPO) {
     case "F:/Hochschule/BA/sample1":
       DEFAULT_DEADLINE = "2024-04-28";
       break;
     case "F:/Hochschule/BA/sample2":
-      DEFAULT_DEADLINE = "2023-04-06";
+      DEFAULT_DEADLINE = "2023-06-04";
       break;
     case "F:/Hochschule/BA/sample3":
       DEFAULT_DEADLINE = "2024-06-02";
@@ -46,19 +46,19 @@ export async function askCliInput(): Promise<CliInput> {
     const commitThresholdMultiplierStr =
       (
         await rl.question(
-          `Multiplikator für Untere Grenze der Commitsanzahl im Bereich 1-3 (Default = ${DEFAULT_COMMIT_THRESHOLD_MULT}): `
+          `Multiplikator für Untere Grenze der Commitsanzahl im Bereich 1-3 (Default = ${DEFAULT_COMMIT_THRESHOLD_MULT}): `,
         )
       ).trim() || DEFAULT_COMMIT_THRESHOLD_MULT;
     const changesThresholdMultiplierStr =
       (
         await rl.question(
-          `Multiplikator für Untere Grenze der Änderungen im Bereich 1-3 (Default = ${DEFAULT_CHANGES_THRESHOLD_MULT}): `
+          `Multiplikator für Untere Grenze der Änderungen im Bereich 1-3 (Default = ${DEFAULT_CHANGES_THRESHOLD_MULT}): `,
         )
       ).trim() || DEFAULT_CHANGES_THRESHOLD_MULT;
     const estimatedEffortStr =
       (
         await rl.question(
-          `Geschätzte Aufwand in Stunden (Default = ${DEFAULT_ESTIMATED_EFFORT} St.): `
+          `Geschätzte Aufwand in Stunden (Default = ${DEFAULT_ESTIMATED_EFFORT} St.): `,
         )
       ).trim() || DEFAULT_ESTIMATED_EFFORT;
     const skipFirstCommit =

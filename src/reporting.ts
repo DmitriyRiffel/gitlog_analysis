@@ -5,9 +5,19 @@ import {
   Session,
   CommitType,
 } from "./types";
-import { calculatePercent, earlierDate, getDayAndTimeFromDate } from "./utils";
+import {
+  calculateCommitBundling,
+  calculatePercent,
+  earlierDate,
+  exportCsv,
+  getDayAndTimeFromDate,
+} from "./utils";
 
-export function printCommitsTable(commits: CommitWithDiff[]) {
+export function printCommitsTable(
+  commits: CommitWithDiff[],
+  skipFirstCommit: boolean,
+) {
+  const filteredCommits = skipFirstCommit ? commits.slice(1) : commits;
   console.table(
     commits.map((c) => ({
       hash: c.hash.slice(0, 10),
@@ -29,8 +39,9 @@ export function printCommitsTable(commits: CommitWithDiff[]) {
       diff_hours: Number(c.diffHours.toFixed(3)),
       diff_minutes: Number(c.diffMinutes.toFixed(3)),
       changes_hour: Number(c.changesPerHour.toFixed(2)),
-    }))
+    })),
   );
+  console.log("Bundling: ", calculateCommitBundling(filteredCommits));
 }
 
 export function buildCriteriaRows(
@@ -38,27 +49,34 @@ export function buildCriteriaRows(
   thresholdCommitCount: number,
   thresholdtotalSourceChanges: number,
   thresholdChangesInTests: number,
-  deadline = new Date("2024-04-28T23:59:00")
+  deadline = new Date("2024-04-28T23:59:00"),
 ): CriteriaRow[] {
   return [...authors.values()].map((a) => {
     const startDate = earlierDate(a.firstCommitDate, a.cloneDate);
     return {
       author: a.author,
-      totalCommits: a.totalCommits,
+
       totalSourceChanges: a.totalSourceChanges,
       totalTestChanges: a.totalTestChanges,
       totalCommentChanges: a.totalCommentChanges,
       totalChanges: a.totalChanges,
+
       areFewCommits: a.totalCommits <= thresholdCommitCount,
       areFewChanges: a.totalSourceChanges <= thresholdtotalSourceChanges,
       areFewChangesInTests: a.totalTestChanges <= thresholdChangesInTests,
+
       startDate: startDate,
       endDate: a.lastCommitDate,
       totalSessions: a.sessions.length,
+
+      totalCommits: a.totalCommits,
       totalCommentCommits: a.totalCommentCommits,
       totalSourceCommits: a.totalSourceCommits,
       totalTestCommits: a.totalTestCommits,
       totalMixedCommits: a.totalMixedCommits,
+
+      bundling_coeff: a.bundling_coeff,
+
       averageChangesPerHour: calculateAverageChangesPerHour(a.sessions),
       averageCommitsPerSession: calculateAverageCommitsPerSession(a.sessions),
       firstCommitOnDeadline:
@@ -68,78 +86,70 @@ export function buildCriteriaRows(
   });
 }
 
+function formatWithPercent(total: number, value: number): string {
+  // return `${value} (${calculatePercent(total, value)} %)`;
+  return `${calculatePercent(total, value)} % (${value})`;
+}
+
 export function printCriteriaTable(
   rows: CriteriaRow[],
   deadline = new Date("2024-04-28T23:59:00"),
-  plannedHours = 6
+  plannedHours: number = 6,
+  repoName: string,
 ) {
-  console.table(
-    rows.map((row) => ({
-      author: row.author,
-      total_commits: `${row.totalCommits}`,
-      mixed_commits: `${row.totalMixedCommits} (${calculatePercent(
-        row.totalCommits,
-        row.totalMixedCommits
-      )} %)`,
-      source_commits: `${row.totalSourceCommits} (${calculatePercent(
-        row.totalCommits,
-        row.totalSourceCommits
-      )} %)`,
-      test_commits: `${row.totalTestCommits} (${calculatePercent(
-        row.totalCommits,
-        row.totalTestCommits
-      )} %)`,
-      comment_commits: `${row.totalCommentCommits} (${calculatePercent(
-        row.totalCommits,
-        row.totalCommentCommits
-      )} %)`,
-      source_changes: `${row.totalSourceChanges} (${calculatePercent(
-        row.totalChanges,
-        row.totalSourceChanges
-      )} %)`,
+  const tableRows = rows.map((row) => ({
+    author: row.author,
+    total_commits: `${row.totalCommits}`,
+    mixed_commits: formatWithPercent(row.totalCommits, row.totalMixedCommits),
+    source_commits: formatWithPercent(row.totalCommits, row.totalSourceCommits),
+    test_commits: formatWithPercent(row.totalCommits, row.totalTestCommits),
+    comment_commits: formatWithPercent(
+      row.totalCommits,
+      row.totalCommentCommits,
+    ),
+    total_changes: formatWithPercent(row.totalChanges, row.totalChanges),
+    source_changes: formatWithPercent(row.totalChanges, row.totalSourceChanges),
+    comment_changes: formatWithPercent(
+      row.totalChanges,
+      row.totalCommentChanges,
+    ),
+    test_changes: formatWithPercent(row.totalChanges, row.totalTestChanges),
+    bundling: row.bundling_coeff,
+    start_date:
+      getDayAndTimeFromDate(row.startDate).day +
+      " " +
+      getDayAndTimeFromDate(row.startDate).time,
+    end_date:
+      getDayAndTimeFromDate(row.endDate).day +
+      " " +
+      getDayAndTimeFromDate(row.endDate).time,
+    deadline:
+      getDayAndTimeFromDate(deadline).day +
+      " " +
+      getDayAndTimeFromDate(deadline).time,
+    // first_on_deadline: row.firstCommitOnDeadline ? "ja" : "nein",
+    // late_start: isTooLateFirstCommit(row.startDate, deadline, plannedHours)
+    //   ? "ja"
+    //   : "nein",
+    // few_commits: row.areFewCommits ? "ja" : "nein",
+    // few_changes: row.areFewChanges ? "ja" : "nein",
+    // few_tests: row.areFewChangesInTests ? "ja" : "nein",
 
-      comment_changes: `${row.totalCommentChanges} (${calculatePercent(
-        row.totalChanges,
-        row.totalCommentChanges
-      )} %)`,
+    sessions: row.totalSessions,
+    // average_changes_hour_session: row.averageChangesPerHour,
+    // average_changes_session: row.totalSourceChanges / row.totalSessions,
+    avg_commits: row.averageCommitsPerSession,
+    index: calculateIndex(row, deadline, plannedHours),
+  }));
 
-      test_changes: `${row.totalTestChanges} (${calculatePercent(
-        row.totalChanges,
-        row.totalTestChanges
-      )} %)`,
-      start_date:
-        getDayAndTimeFromDate(row.startDate).day +
-        " " +
-        getDayAndTimeFromDate(row.startDate).time,
-      end_date:
-        getDayAndTimeFromDate(row.endDate).day +
-        " " +
-        getDayAndTimeFromDate(row.endDate).time,
-      deadline:
-        getDayAndTimeFromDate(deadline).day +
-        " " +
-        getDayAndTimeFromDate(deadline).time,
-      first_on_deadline: row.firstCommitOnDeadline ? "ja" : "nein",
-      late_start: isTooLateFirstCommit(row.startDate, deadline, plannedHours)
-        ? "ja"
-        : "nein",
-      few_commits: row.areFewCommits ? "ja" : "nein",
-      few_changes: row.areFewChanges ? "ja" : "nein",
-      few_tests: row.areFewChangesInTests ? "ja" : "nein",
-
-      sessions: row.totalSessions,
-      // average_changes_hour_session: row.averageChangesPerHour,
-      // average_changes_session: row.totalSourceChanges / row.totalSessions,
-      avg_commits: row.averageCommitsPerSession,
-      index: calculateIndex(row, deadline, plannedHours),
-    }))
-  );
+  console.table(tableRows);
+  // exportCsv(tableRows, `criteriaTable_${repoName}.csv`);
 }
 
 function calculateIndex(
   row: CriteriaRow,
   deadline = new Date("2024-04-28T23:59:00"),
-  plannedHours = 6
+  plannedHours = 6,
 ): number {
   let index: number = 0;
   if (row.firstCommitOnDeadline) index += 0.25;
@@ -158,7 +168,7 @@ function subtractHours(d: Date, hours: number): Date {
 function isTooLateFirstCommit(
   firstCommitAt: Date,
   deadline: Date,
-  plannedHours: number
+  plannedHours: number,
 ): boolean {
   return firstCommitAt > subtractHours(deadline, plannedHours);
 }

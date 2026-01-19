@@ -9,6 +9,7 @@ import {
   ZERO_STATS,
 } from "./types";
 import {
+  calculateCommitBundling,
   determineCommitTypeFromChanges,
   determineCommitTypeFromCommit,
   getCloneDate,
@@ -39,7 +40,7 @@ async function createCSV(repo: string): Promise<Commit[]> {
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 
   const uniqueAuthors = Array.from(
-    new Set(parsed.map((commit) => commit.rawAuthor).filter(Boolean))
+    new Set(parsed.map((commit) => commit.rawAuthor).filter(Boolean)),
   ).sort((a, b) => a.localeCompare(b));
 
   const mergedAuthorName =
@@ -55,11 +56,11 @@ async function createCSV(repo: string): Promise<Commit[]> {
 }
 
 export async function buildStatsByHash(
-  repo: string
+  repo: string,
 ): Promise<Map<string, Stats>> {
   /** Read per-file stats and skip CSV header row */
   const statsLines = (await readLines(repo + "/commits_with_stats.csv")).slice(
-    1
+    1,
   );
 
   /** Aggregate stats per commit hash */
@@ -101,7 +102,7 @@ export async function buildStatsByHash(
       totalChanges,
       totalSourceChanges,
       totalTestChanges,
-      totalCommentChanges
+      totalCommentChanges,
     );
 
     statsByHash.set(row.hash, {
@@ -131,7 +132,7 @@ export async function buildStatsByHash(
 
 export function buildCommitsWithDiff(
   commits: Commit[],
-  statsByHash: Map<string, Stats>
+  statsByHash: Map<string, Stats>,
 ): CommitWithDiff[] {
   const rows = commits.map((commit, i) => {
     const day = commit.date.toLocaleDateString("de-DE");
@@ -203,7 +204,7 @@ export function buildCommitsWithDiff(
     (r) =>
       r.totalSourceChanges > 0 ||
       r.totalTestChanges > 0 ||
-      r.totalCommentChanges > 0
+      r.totalCommentChanges > 0,
   );
   return rows;
 }
@@ -211,11 +212,12 @@ export function buildCommitsWithDiff(
 function aggregateAuthors(
   commits: CommitWithDiff[],
   sessions: Session[],
-  skipFirstCommit: boolean
+  skipFirstCommit: boolean,
 ): Map<string, AuthorAggregation> {
   const map = new Map<string, AuthorAggregation>();
   const sessionsByAuthor = aggregateSessionsByAuthor(sessions);
   const firstCommitSkipped = new Map<string, boolean>();
+  const commitsByAuthor = new Map<string, CommitWithDiff[]>();
 
   function getOrCreate(author: string): AuthorAggregation {
     const existing = map.get(author);
@@ -243,6 +245,7 @@ function aggregateAuthors(
       totalTestCommits: 0,
       totalMixedCommits: 0,
       totalCommits: 0,
+      bundling_coeff: 0,
       sessions: sessionsByAuthor.get(author) ?? [],
     };
     map.set(author, fresh);
@@ -252,12 +255,19 @@ function aggregateAuthors(
   for (const commit of commits) {
     const a = getOrCreate(commit.author);
 
-    if (skipFirstCommit)
+    if (skipFirstCommit) {
       if (!firstCommitSkipped.get(commit.author)) {
         firstCommitSkipped.set(commit.author, true);
         continue;
       }
+    }
 
+    if (!commitsByAuthor.has(commit.author)) {
+      commitsByAuthor.set(commit.author, []);
+    }
+    commitsByAuthor.get(commit.author)!.push(commit);
+
+    a.bundling_coeff = calculateCommitBundling(commits);
     a.totalCommits += 1;
     a.totalSourceInsertions += commit.sourceInsertions;
     a.totalSourceDeletions += commit.sourceDeletions;
@@ -290,7 +300,15 @@ function aggregateAuthors(
         a.totalMixedCommits += 1;
         break;
     }
+
+    for (const [author, authorCommits] of commitsByAuthor) {
+      const a = map.get(author);
+      if (a) {
+        a.bundling_coeff = calculateCommitBundling(authorCommits);
+      }
+    }
   }
+
   return map;
 }
 
@@ -300,7 +318,7 @@ export async function analyzeRepo(repo: string, skipFirstCommit: boolean) {
   const repoCloneDate = await getCloneDate(repo);
   const commitsWithDiff = buildCommitsWithDiff(
     await commits,
-    await statsByHash
+    await statsByHash,
   );
   const sessions = buildSessions(commitsWithDiff, 120);
 
@@ -315,7 +333,7 @@ export async function analyzeRepo(repo: string, skipFirstCommit: boolean) {
 
 function buildSessions(
   commits: CommitWithDiff[],
-  maxGapMinutes: number
+  maxGapMinutes: number,
 ): Session[] {
   if (commits.length === 0) return [];
 
@@ -402,7 +420,7 @@ function finalizeSession(session: Session) {
 }
 
 function aggregateSessionsByAuthor(
-  sessions: Session[]
+  sessions: Session[],
 ): Map<string, Session[]> {
   const map = new Map<string, Session[]>();
 

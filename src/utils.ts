@@ -280,3 +280,40 @@ export function determineCommitTypeFromChanges(
 export function calculatePercent(total: number, part: number) {
   return ((part / total) * 100).toFixed(2);
 }
+
+export function exportCsv(tableRows: Record<string, any>[], filename: string) {
+  if (tableRows.length === 0) return;
+
+  /* https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys 
+  https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
+  */
+  const header = Object.keys(tableRows[0]).join(",");
+
+  const lines = tableRows.map((row) =>
+    Object.values(row)
+      /* https://stackoverflow.com/questions/769621/dealing-with-commas-in-a-csv-file */
+      .map((v) => `"${String(v)}"`)
+      .join(","),
+  );
+
+  const csv = [header, ...lines].join("\n");
+  /* https://nodejs.org/api/fs.html#fswritefilesyncfile-data-options */
+  fs.writeFileSync(filename, csv, "utf8");
+}
+
+export function calculateCommitBundling(commits: CommitWithDiff[]) {
+  const totals = commits.map((c) => c.totalChanges);
+
+  const totalChanges = totals.reduce((a, b) => a + b, 0);
+  const maxCommit = Math.max(...totals);
+
+  const bundling = maxCommit / totalChanges;
+
+  // return {
+  //   bundling,
+  //   category:
+  //     bundling >= 0.75 ? "hoch" : bundling >= 0.4 ? "mittel" : "niedrig",
+  // };
+
+  return Number((Math.round(bundling * 100) / 100).toFixed(2));
+}

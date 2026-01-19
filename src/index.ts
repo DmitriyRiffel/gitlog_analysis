@@ -1,6 +1,8 @@
 import { analyzeRepo } from "./analysis";
 import { askCliInput } from "./cli";
 import { exportGitLogs, getGitLogs } from "./export_git_logs";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
 import {
   buildCriteriaRows,
   printCommitsTable,
@@ -8,13 +10,17 @@ import {
 } from "./reporting";
 import { AuthorAggregation } from "./types";
 import {
+  calculateCommitBundling,
   calculateLowerMadThreshold,
   findGitRepos,
   mergeAuthorMaps,
 } from "./utils";
 
 async function main() {
-  const cli = await askCliInput();
+  const repoName = "sample2";
+  const skipFirstCommit = false;
+
+  const cli = await askCliInput(repoName);
 
   const repoDirs = await findGitRepos(cli.repoPath);
   console.log("\nRepository:", cli.repoPath);
@@ -22,7 +28,7 @@ async function main() {
     "Deadline:",
     cli.deadline.toLocaleDateString("de-DE") +
       " " +
-      cli.deadline.toLocaleTimeString("de-DE")
+      cli.deadline.toLocaleTimeString("de-DE"),
   );
   console.log("Untere Grenze für Commits: ", cli.commitThresholdMultiplier);
   console.log("Geschätzte Aufwand in Stunden: ", cli.estimatedEffort);
@@ -34,22 +40,22 @@ async function main() {
   for (const repo of repoDirs) {
     const { commitsWithDiff, authors, sessions } = await analyzeRepo(
       repo,
-      cli.skipFirstCommit
+      skipFirstCommit,
     );
     const nonTestCommitCount = commitsWithDiff.filter(
-      (c) => c.totalSourceChanges > 0 || c.totalCommentChanges > 0
+      (c) => c.totalSourceChanges > 0 || c.totalCommentChanges > 0,
     ).length;
     let idx = 0;
     console.log(
       "Diff: ",
       commitsWithDiff[idx].author,
       " ",
-      commitsWithDiff.length
+      commitsWithDiff.length,
     );
     console.log("nontestCommitLength : ", nonTestCommitCount);
     commitCountsPerRepo.push(nonTestCommitCount);
     mergeAuthorMaps(students, authors);
-    printCommitsTable(commitsWithDiff);
+    printCommitsTable(commitsWithDiff, skipFirstCommit);
     console.table(
       sessions.map((s) => ({
         author: s.author,
@@ -58,30 +64,30 @@ async function main() {
         duration_min: s.durationMinutes,
         total_changes: s.totalSourceChanges,
         changes_hour: s.changesPerHour ?? 0,
-      }))
+      })),
     );
     console.log("---------");
     idx++;
   }
 
   const authortotalSourceChanges = Array.from(students.values()).map(
-    (a) => a.totalSourceChanges
+    (a) => a.totalSourceChanges,
   );
   const authortotalSourceChangesInTests = Array.from(students.values()).map(
-    (a) => a.totalTestChanges
+    (a) => a.totalTestChanges,
   );
 
   const thresholdCommitCount = calculateLowerMadThreshold(
     commitCountsPerRepo,
-    cli.commitThresholdMultiplier
+    cli.commitThresholdMultiplier,
   );
   const thresholdtotalSourceChanges = calculateLowerMadThreshold(
     authortotalSourceChanges,
-    1.5
+    1.5,
   );
   const thresholdtotalSourceChangesInTests = calculateLowerMadThreshold(
     authortotalSourceChangesInTests,
-    2
+    2,
   );
 
   const criteriaRows = buildCriteriaRows(
@@ -89,7 +95,7 @@ async function main() {
     thresholdCommitCount,
     thresholdtotalSourceChanges,
     thresholdtotalSourceChangesInTests,
-    cli.deadline
+    cli.deadline,
   );
   let count: number = 0;
   for (const changes of authortotalSourceChanges) {
@@ -100,13 +106,13 @@ async function main() {
     "Untere Grenze für Changes:",
     thresholdtotalSourceChanges,
     "Mittelwert:",
-    count / authortotalSourceChanges.length
+    count / authortotalSourceChanges.length,
   );
   console.log(
     "Untere Grenze für Tests-Änderungen",
-    thresholdtotalSourceChangesInTests
+    thresholdtotalSourceChangesInTests,
   );
-  printCriteriaTable(criteriaRows, cli.deadline, cli.estimatedEffort);
+  printCriteriaTable(criteriaRows, cli.deadline, cli.estimatedEffort, repoName);
 }
 
 main().catch((e) => {
