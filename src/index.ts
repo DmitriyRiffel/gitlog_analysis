@@ -32,7 +32,7 @@ async function main() {
   );
   console.log("Untere Grenze für Commits: ", cli.commitThresholdMultiplier);
   console.log("Geschätzte Aufwand in Stunden: ", cli.estimatedEffort);
-  await exportGitLogs(repoDirs);
+  // await exportGitLogs(repoDirs);
 
   const commitCountsPerRepo: number[] = [];
   const students = new Map<string, AuthorAggregation>();
