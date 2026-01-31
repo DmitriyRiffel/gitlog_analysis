@@ -57,6 +57,7 @@ legend_labels <- pearson_tbl %>%
 # Plot: Farbe = sample
 plot_changes <- ggplot(all_samples_changes, aes(x = commits, y = total_changes_n, color = sample)) +
   geom_point() +
+  facet_wrap(~ sample, ncol = 3) +
   scale_color_manual(
     values = c(
       "sample1" = "#311b9e",
