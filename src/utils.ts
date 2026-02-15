@@ -191,15 +191,14 @@ export async function getCloneDate(repoDir: string): Promise<Date | undefined> {
   }
 
   const dateObj = extractAndFormatCloneDate(reflog.stdout);
-  const cloneDate = dateObj ?? undefined;
 
   if (!dateObj) {
     console.warn(`Kein Klondatum gefunden in ${repoDir}`);
   } else {
-    console.log(`Klondatum (${repoDir}): ${dateObj}`);
+    console.log(`Klondatum: ${dateObj}`);
   }
 
-  return cloneDate;
+  return dateObj;
 }
 
 export function earlierDate(firstCommitDate: Date, cloneDate?: Date) {
@@ -284,7 +283,7 @@ export function calculatePercent(total: number, part: number) {
 export function exportCsv(tableRows: Record<string, any>[], filename: string) {
   if (tableRows.length === 0) return;
 
-  /* https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys 
+  /* https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys
   https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
   */
   const header = Object.keys(tableRows[0]).join(",");

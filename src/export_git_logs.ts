@@ -45,7 +45,6 @@ export async function getGitLogs(repoDir: string): Promise<boolean> {
 
   // await runGit(["reset", "--hard"], repoDir);
 
-  console.log(`Erzeuge Git-Logs in: ${repoDir}`);
 
   const log = await runGit(
     ["log", "--pretty=format:%H|%an|%ae|%ai|%s", "--date=iso"],
@@ -92,7 +91,7 @@ export async function getGitLogs(repoDir: string): Promise<boolean> {
   const cleanPath = path.join(repoDir, "commits_with_stats.csv");
   await fs.writeFile(cleanPath, rows.join("\n"), { encoding: "utf8" });
 
-  console.log("Fertig: commits.csv, commits_with_stats.csv erstellt.");
+  console.log(`Fertig: commits.csv, commits_with_stats.csv in: ${repoDir} erstellt.`);
   return true;
 }
 

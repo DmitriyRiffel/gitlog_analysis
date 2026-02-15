@@ -126,7 +126,7 @@ export type CliInput = {
   skipFirstCommit: boolean;
   deadline: Date;
   estimatedEffort: number;
-  commitThresholdMultiplier: number;
+  commitThreshold: number;
   changesThresholdMultiplier: number;
 };
 

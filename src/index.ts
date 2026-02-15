@@ -10,14 +10,13 @@ import {
 } from "./reporting";
 import { AuthorAggregation } from "./types";
 import {
-  calculateCommitBundling,
   calculateLowerMadThreshold,
   findGitRepos,
   mergeAuthorMaps,
 } from "./utils";
 
 async function main() {
-  const repoName = "sample1";
+  const repoName = "sample4";
   const skipFirstCommit = false;
 
   const cli = await askCliInput(repoName);
@@ -30,7 +29,7 @@ async function main() {
       " " +
       cli.deadline.toLocaleTimeString("de-DE"),
   );
-  console.log("Untere Grenze für Commits: ", cli.commitThresholdMultiplier);
+  console.log("Untere Grenze für Commits: ", cli.commitThreshold);
   console.log("Geschätzte Aufwand in Stunden: ", cli.estimatedEffort);
   // await exportGitLogs(repoDirs);
 
@@ -40,7 +39,7 @@ async function main() {
   for (const repo of repoDirs) {
     const { commitsWithDiff, authors, sessions } = await analyzeRepo(
       repo,
-      skipFirstCommit,
+      cli.skipFirstCommit,
     );
     const nonTestCommitCount = commitsWithDiff.filter(
       (c) => c.totalSourceChanges > 0 || c.totalCommentChanges > 0,
@@ -55,14 +54,14 @@ async function main() {
     console.log("nontestCommitLength : ", nonTestCommitCount);
     commitCountsPerRepo.push(nonTestCommitCount);
     mergeAuthorMaps(students, authors);
-    printCommitsTable(commitsWithDiff, skipFirstCommit);
+    printCommitsTable(commitsWithDiff, cli.skipFirstCommit);
     console.table(
       sessions.map((s) => ({
         author: s.author,
         session_index: s.sessionIndex,
         commits: s.commitCount,
         duration_min: s.durationMinutes,
-        total_changes: s.totalSourceChanges,
+        total_changes: s.totalChanges,
         changes_hour: s.changesPerHour ?? 0,
       })),
     );
@@ -77,10 +76,6 @@ async function main() {
     (a) => a.totalTestChanges,
   );
 
-  const thresholdCommitCount = calculateLowerMadThreshold(
-    commitCountsPerRepo,
-    cli.commitThresholdMultiplier,
-  );
   const thresholdtotalSourceChanges = calculateLowerMadThreshold(
     authortotalSourceChanges,
     1.5,
@@ -92,7 +87,7 @@ async function main() {
 
   const criteriaRows = buildCriteriaRows(
     students,
-    thresholdCommitCount,
+    cli.commitThreshold,
     thresholdtotalSourceChanges,
     thresholdtotalSourceChangesInTests,
     cli.deadline,
@@ -101,7 +96,7 @@ async function main() {
   for (const changes of authortotalSourceChanges) {
     count += changes;
   }
-  console.log("Untere Grenze für Commits:", thresholdCommitCount);
+  console.log("Untere Grenze für Commits:", cli.commitThreshold);
   console.log(
     "Untere Grenze für Changes:",
     thresholdtotalSourceChanges,

@@ -400,9 +400,10 @@ function addCommit(session: Session, commit: CommitWithDiff) {
   session.sourceInsertions += commit.sourceInsertions;
   session.sourceDeletions += commit.sourceDeletions;
   session.totalSourceChanges += commit.totalSourceChanges;
-  // session.commentInsertions += commit.commentInsertions;
-  // session.commentDeletions += commit.commentDeletions;
+  session.commentInsertions += commit.commentInsertions;
+  session.commentDeletions += commit.commentDeletions;
   session.totalCommentChanges += commit.commentInsertions;
+  session.totalChanges += commit.totalChanges;
 }
 
 function finalizeSession(session: Session) {
