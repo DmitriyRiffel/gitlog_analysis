@@ -205,9 +205,6 @@ function calculateAverageCommitsPerSession(sessions: Session[]) {
   return Number((temp / counter).toFixed(1));
 }
 
-/** Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
- * ----------------------
-*/
 // Excel Export Funktionalität
 export type ExcelExportData = {
   commits: { repoName: string; data: CommitWithDiff[]; skipFirstCommit: boolean }[];
@@ -223,43 +220,14 @@ export async function exportToExcel(
   workbook.creator = "GitLog Analysis";
   workbook.created = new Date();
 
-  const usedSheetNames = new Set<string>();
-
   // Criteria Tabelle (die wichtigste Tabelle)
   addCriteriaSheet(workbook, data.criteria);
-  usedSheetNames.add("Kriterien-Übersicht");
 
   // Alle Sessions zusammengefasst in einem Sheet
-  const allSessions: Session[] = [];
-  data.sessions.forEach(sessionData => {
-    allSessions.push(...sessionData.data);
-  });
-  addSessionsSheet(workbook, "Alle Sessions", allSessions);
-  usedSheetNames.add("Alle Sessions");
+  addAllSessionsSheet(workbook, "Alle Sessions", data.sessions);
 
-  // Commits Tabellen (eine pro Repository)
-  let commitIndex = 1;
-  for (const commitData of data.commits) {
-    const sheetName = createUniqueSheetName(
-      `C_${commitData.repoName}`,
-      usedSheetNames,
-      commitIndex
-    );
-    addCommitsSheet(workbook, sheetName, commitData.data, commitData.skipFirstCommit);
-    commitIndex++;
-  }
-
-  // Sessions Tabellen (eine pro Repository)
-  let sessionIndex = 1;
-  for (const sessionData of data.sessions) {
-    const sheetName = createUniqueSheetName(
-      `S_${sessionData.repoName}`,
-      usedSheetNames,
-      sessionIndex
-    );
-    addSessionsSheet(workbook, sheetName, sessionData.data);
-    sessionIndex++;
-  }
+  // Alle Commits zusammengefasst in einem Sheet
+  addAllCommitsSheet(workbook, "Alle Commits", data.commits);
 
   // Datei speichern
   await workbook.xlsx.writeFile(filename);
@@ -334,16 +302,70 @@ function addCriteriaSheet(
   };
 }
 
-function addCommitsSheet(
+function addAllSessionsSheet(
   workbook: ExcelJS.Workbook,
   sheetName: string,
-  commits: CommitWithDiff[],
-  skipFirstCommit: boolean,
+  sessionsByRepo: { repoName: string; data: Session[] }[],
 ): void {
   const sheet = workbook.addWorksheet(sheetName);
 
   // Header
   sheet.columns = [
+    { header: "Repository", key: "repository", width: 25 },
+    { header: "Autor", key: "author", width: 20 },
+    { header: "Session Index", key: "session_index", width: 15 },
+    { header: "Commits", key: "commits", width: 10 },
+    { header: "Duration (min)", key: "duration_min", width: 15 },
+    { header: "Total Changes", key: "total_changes", width: 15 },
+    { header: "Changes/h", key: "changes_hour", width: 12 },
+  ];
+
+  // Header Style
+  sheet.getRow(1).font = { bold: true };
+  sheet.getRow(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFFFC000" },
+  };
+  sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+  // Daten hinzufügen mit Repository-Trennung
+  sessionsByRepo.forEach((sessionData, index) => {
+    sessionData.data.forEach((s) => {
+      sheet.addRow({
+        repository: sessionData.repoName,
+        author: s.author,
+        session_index: s.sessionIndex,
+        commits: s.commitCount,
+        duration_min: s.durationMinutes,
+        total_changes: s.totalChanges,
+        changes_hour: s.changesPerHour ?? 0,
+      });
+    });
+
+    // Leerzeile nach jedem Repository (außer dem letzten)
+    if (index < sessionsByRepo.length - 1) {
+      sheet.addRow({});
+    }
+  });
+
+  // Autofilter
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: 7 },
+  };
+}
+
+function addAllCommitsSheet(
+  workbook: ExcelJS.Workbook,
+  sheetName: string,
+  commitsByRepo: { repoName: string; data: CommitWithDiff[]; skipFirstCommit: boolean }[],
+): void {
+  const sheet = workbook.addWorksheet(sheetName);
+
+  // Header
+  sheet.columns = [
+    { header: "Repository", key: "repository", width: 25 },
     { header: "Hash", key: "hash", width: 12 },
     { header: "Autor", key: "author", width: 20 },
     { header: "Subject", key: "subject", width: 40 },
@@ -374,110 +396,51 @@ function addCommitsSheet(
   };
   sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
 
-  // Daten hinzufügen
-  commits.forEach((c) => {
-    sheet.addRow({
-      hash: c.hash.slice(0, 10),
-      author: c.author,
-      subject: c.subject,
-      date: c.day + " " + c.time,
-      files: c.filesChanged,
-      source_ins: c.sourceInsertions,
-      source_del: c.sourceDeletions,
-      source_total: c.totalSourceChanges,
-      comment_ins: c.commentInsertions,
-      comment_del: c.commentDeletions,
-      comment_total: c.totalCommentChanges,
-      tests_ins: c.testInsertions,
-      tests_del: c.testDeletions,
-      tests_total: c.totalTestChanges,
-      total: c.totalChanges,
-      type: CommitType[c.commitType],
-      diff_hours: Number(c.diffHours.toFixed(3)),
-      diff_minutes: Number(c.diffMinutes.toFixed(3)),
-      changes_hour: Number(c.changesPerHour.toFixed(2)),
+  // Daten hinzufügen mit Repository-Trennung
+  commitsByRepo.forEach((commitData, index) => {
+    commitData.data.forEach((c) => {
+      sheet.addRow({
+        repository: commitData.repoName,
+        hash: c.hash.slice(0, 10),
+        author: c.author,
+        subject: c.subject,
+        date: c.day + " " + c.time,
+        files: c.filesChanged,
+        source_ins: c.sourceInsertions,
+        source_del: c.sourceDeletions,
+        source_total: c.totalSourceChanges,
+        comment_ins: c.commentInsertions,
+        comment_del: c.commentDeletions,
+        comment_total: c.totalCommentChanges,
+        tests_ins: c.testInsertions,
+        tests_del: c.testDeletions,
+        tests_total: c.totalTestChanges,
+        total: c.totalChanges,
+        type: CommitType[c.commitType],
+        diff_hours: Number(c.diffHours.toFixed(3)),
+        diff_minutes: Number(c.diffMinutes.toFixed(3)),
+        changes_hour: Number(c.changesPerHour.toFixed(2)),
+      });
     });
-  });
 
-  // Bundling als Kommentar hinzufügen
-  const filteredCommits = skipFirstCommit ? commits.slice(1) : commits;
-  const bundling = calculateCommitBundling(filteredCommits);
-  sheet.addRow({});
-  sheet.addRow({ author: "Bundling:", subject: bundling });
+    // Bundling-Info und Leerzeile nach jedem Repository
+    const filteredCommits = commitData.skipFirstCommit ? commitData.data.slice(1) : commitData.data;
+    const bundling = calculateCommitBundling(filteredCommits);
+    sheet.addRow({});
+    sheet.addRow({ repository: `Bundling (${commitData.repoName}):`, author: bundling });
 
-  // Autofilter
-  sheet.autoFilter = {
-    from: { row: 1, column: 1 },
-    to: { row: 1, column: 19 },
-  };
-}
-
-function addSessionsSheet(
-  workbook: ExcelJS.Workbook,
-  sheetName: string,
-  sessions: Session[],
-): void {
-  const sheet = workbook.addWorksheet(sheetName);
-
-  // Header
-  sheet.columns = [
-    { header: "Autor", key: "author", width: 20 },
-    { header: "Session Index", key: "session_index", width: 15 },
-    { header: "Commits", key: "commits", width: 10 },
-    { header: "Duration (min)", key: "duration_min", width: 15 },
-    { header: "Total Changes", key: "total_changes", width: 15 },
-    { header: "Changes/h", key: "changes_hour", width: 12 },
-  ];
-
-  // Header Style
-  sheet.getRow(1).font = { bold: true };
-  sheet.getRow(1).fill = {
-    type: "pattern",
-    pattern: "solid",
-    fgColor: { argb: "FFFFC000" },
-  };
-  sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
-
-  // Daten hinzufügen
-  sessions.forEach((s) => {
-    sheet.addRow({
-      author: s.author,
-      session_index: s.sessionIndex,
-      commits: s.commitCount,
-      duration_min: s.durationMinutes,
-      total_changes: s.totalChanges,
-      changes_hour: s.changesPerHour ?? 0,
-    });
+    if (index < commitsByRepo.length - 1) {
+      sheet.addRow({});
+    }
   });
 
   // Autofilter
   sheet.autoFilter = {
     from: { row: 1, column: 1 },
-    to: { row: 1, column: 6 },
+    to: { row: 1, column: 20 },
   };
 }
 
-function createUniqueSheetName(
-  baseName: string,
-  usedNames: Set<string>,
-  index: number,
-): string {
-  // Excel Sheet-Namen dürfen max. 31 Zeichen haben und keine Sonderzeichen wie : \ / ? * [ ]
-  let sanitized = baseName.replace(/[:\\\/\?\*\[\]]/g, "_");
-
-  // Platz für Index reservieren (z.B. "_99")
-  const indexSuffix = `_${index}`;
-  const maxBaseLength = 31 - indexSuffix.length;
-
-  // Basis-Name kürzen
-  sanitized = sanitized.slice(0, maxBaseLength);
-
-  // Index hinzufügen für Eindeutigkeit
-  const finalName = sanitized + indexSuffix;
-
-  usedNames.add(finalName);
-  return finalName;
-}
 /** Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
  * ----------------------
 */

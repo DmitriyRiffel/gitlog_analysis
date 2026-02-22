@@ -137,8 +137,7 @@ async function main() {
   // Criteria-Daten für Excel setzen
   excelData.criteria.rows = criteriaRows;
   // Excel-Export
-  // const excelFilename = `analysis_${repoName}_${new Date().toISOString().split('T')[0]}.xlsx`;
-  const excelFilename = `testname.xlsx`;
+  const excelFilename = `analysis_${repoName}.xlsx`;
   await exportToExcel(excelData, excelFilename);
 }
 
