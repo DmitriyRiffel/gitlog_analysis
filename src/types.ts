@@ -86,6 +86,8 @@ export type AuthorAggregation = {
   sessions: Session[];
 
   bundling_coeff: number;
+
+  avaregeChangesPerHourOverSessions: number;
 };
 
 export type CriteriaRow = {
@@ -109,6 +111,7 @@ export type CriteriaRow = {
   averageCommitsPerSession: number;
   firstCommitOnDeadline: boolean;
   bundling_coeff: number;
+  avaregeChangesPerHourOverSessions: number;
 };
 
 export type Session = Stats & {
@@ -118,7 +121,7 @@ export type Session = Stats & {
   endDate: Date;
   durationMinutes: number;
   commitCount: number;
-  changesPerHour?: number;
+  changesPerHour: number;
 };
 
 export type CliInput = {

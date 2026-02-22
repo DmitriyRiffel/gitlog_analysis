@@ -247,6 +247,7 @@ function aggregateAuthors(
       totalCommits: 0,
       bundling_coeff: 0,
       sessions: sessionsByAuthor.get(author) ?? [],
+      avaregeChangesPerHourOverSessions: 0,
     };
     map.set(author, fresh);
     return fresh;
@@ -389,6 +390,7 @@ function newSession(commit: CommitWithDiff, index: number): Session {
     testInsertions: 0,
     testDeletions: 0,
     totalTestChanges: 0,
+    changesPerHour: 0,
   };
 }
 
@@ -412,11 +414,11 @@ function finalizeSession(session: Session) {
 
   session.durationMinutes = Number(Math.max(0, duration).toFixed(1));
 
-  if (session.durationMinutes > 0) {
+  if (session.commitCount >= 3) {
     session.changesPerHour =
-      session.totalSourceChanges / (session.durationMinutes / 60);
+      session.totalChanges / (session.durationMinutes / 60);
   } else {
-    session.changesPerHour = 0;
+    session.changesPerHour = session.totalChanges;
   }
 }
 

@@ -1,15 +1,16 @@
 import { analyzeRepo } from "./analysis";
 import { askCliInput } from "./cli";
 import { exportGitLogs, getGitLogs } from "./export_git_logs";
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import {
   buildCriteriaRows,
   printCommitsTable,
   printCriteriaTable,
+  exportToExcel,
+  ExcelExportData,
 } from "./reporting";
 import { AuthorAggregation } from "./types";
 import {
+  calculateAvaregeChangesPerHourOverSessions,
   calculateLowerMadThreshold,
   findGitRepos,
   mergeAuthorMaps,
@@ -17,7 +18,6 @@ import {
 
 async function main() {
   const repoName = "sample4";
-  const skipFirstCommit = false;
 
   const cli = await askCliInput(repoName);
 
@@ -35,6 +35,14 @@ async function main() {
 
   const commitCountsPerRepo: number[] = [];
   const students = new Map<string, AuthorAggregation>();
+
+  // Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
+  // Daten für Excel-Export sammeln
+  const excelData: ExcelExportData = {
+    commits: [],
+    sessions: [],
+    criteria: { rows: [], deadline: cli.deadline, plannedHours: cli.estimatedEffort },
+  };
 
   for (const repo of repoDirs) {
     const { commitsWithDiff, authors, sessions } = await analyzeRepo(
@@ -55,6 +63,7 @@ async function main() {
     commitCountsPerRepo.push(nonTestCommitCount);
     mergeAuthorMaps(students, authors);
     printCommitsTable(commitsWithDiff, cli.skipFirstCommit);
+    console.log("Durschnittliche Anzahl von Änderungen pro Stunde", calculateAvaregeChangesPerHourOverSessions(sessions, cli.skipFirstCommit));
     console.table(
       sessions.map((s) => ({
         author: s.author,
@@ -66,48 +75,71 @@ async function main() {
       })),
     );
     console.log("---------");
+
+    // Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
+    // Daten für Excel sammeln
+    const repoDisplayName = repo.split('/').pop() || `repo_${idx}`;
+    excelData.commits.push({
+      repoName: repoDisplayName,
+      data: commitsWithDiff,
+      skipFirstCommit: cli.skipFirstCommit,
+    });
+    excelData.sessions.push({
+      repoName: repoDisplayName,
+      data: sessions,
+    });
+
     idx++;
   }
 
-  const authortotalSourceChanges = Array.from(students.values()).map(
-    (a) => a.totalSourceChanges,
+  const authorTotalChanges = Array.from(students.values()).map(
+    (a) => a.totalChanges,
   );
-  const authortotalSourceChangesInTests = Array.from(students.values()).map(
+  const authorTotalChangesInTests = Array.from(students.values()).map(
     (a) => a.totalTestChanges,
   );
 
-  const thresholdtotalSourceChanges = calculateLowerMadThreshold(
-    authortotalSourceChanges,
-    1.5,
+  const thresholdTotalChanges = calculateLowerMadThreshold(
+    authorTotalChanges,
+    2,
   );
-  const thresholdtotalSourceChangesInTests = calculateLowerMadThreshold(
-    authortotalSourceChangesInTests,
+  const thresholdTotalChangesInTests = calculateLowerMadThreshold(
+    authorTotalChangesInTests,
     2,
   );
 
   const criteriaRows = buildCriteriaRows(
     students,
     cli.commitThreshold,
-    thresholdtotalSourceChanges,
-    thresholdtotalSourceChangesInTests,
+    thresholdTotalChanges,
+    thresholdTotalChangesInTests,
+    cli.skipFirstCommit,
     cli.deadline,
   );
   let count: number = 0;
-  for (const changes of authortotalSourceChanges) {
+  for (const changes of authorTotalChanges) {
     count += changes;
   }
   console.log("Untere Grenze für Commits:", cli.commitThreshold);
   console.log(
     "Untere Grenze für Changes:",
-    thresholdtotalSourceChanges,
+    thresholdTotalChanges,
     "Mittelwert:",
-    count / authortotalSourceChanges.length,
+    count / authorTotalChanges.length,
   );
   console.log(
     "Untere Grenze für Tests-Änderungen",
-    thresholdtotalSourceChangesInTests,
+    thresholdTotalChangesInTests,
   );
   printCriteriaTable(criteriaRows, cli.deadline, cli.estimatedEffort, repoName);
+
+  // Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
+  // Criteria-Daten für Excel setzen
+  excelData.criteria.rows = criteriaRows;
+  // Excel-Export
+  // const excelFilename = `analysis_${repoName}_${new Date().toISOString().split('T')[0]}.xlsx`;
+  const excelFilename = `testname.xlsx`;
+  await exportToExcel(excelData, excelFilename);
 }
 
 main().catch((e) => {

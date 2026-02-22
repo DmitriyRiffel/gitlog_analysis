@@ -7,11 +7,13 @@ import {
 } from "./types";
 import {
   calculateCommitBundling,
+  calculateAvaregeChangesPerHourOverSessions,
   calculatePercent,
   earlierDate,
   exportCsv,
   getDayAndTimeFromDate,
 } from "./utils";
+import ExcelJS from "exceljs";
 
 export function printCommitsTable(
   commits: CommitWithDiff[],
@@ -49,6 +51,7 @@ export function buildCriteriaRows(
   thresholdCommitCount: number,
   thresholdtotalSourceChanges: number,
   thresholdChangesInTests: number,
+  skipFirstCommit: boolean,
   deadline = new Date("2024-04-28T23:59:00"),
 ): CriteriaRow[] {
   return [...authors.values()].map((a) => {
@@ -82,6 +85,11 @@ export function buildCriteriaRows(
       firstCommitOnDeadline:
         getDayAndTimeFromDate(startDate).day ===
         getDayAndTimeFromDate(deadline).day,
+      avaregeChangesPerHourOverSessions:
+        calculateAvaregeChangesPerHourOverSessions(
+          a.sessions,
+          skipFirstCommit,
+        ),
     };
   });
 }
@@ -139,6 +147,10 @@ export function printCriteriaTable(
     // average_changes_hour_session: row.averageChangesPerHour,
     // average_changes_session: row.totalSourceChanges / row.totalSessions,
     avg_commits: row.averageCommitsPerSession,
+
+    /** Average changes per hour over the sessions */
+    avg_changes: row.avaregeChangesPerHourOverSessions,
+
     index: calculateIndex(row, deadline, plannedHours),
   }));
 
@@ -192,3 +204,280 @@ function calculateAverageCommitsPerSession(sessions: Session[]) {
   }
   return Number((temp / counter).toFixed(1));
 }
+
+/** Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
+ * ----------------------
+*/
+// Excel Export Funktionalität
+export type ExcelExportData = {
+  commits: { repoName: string; data: CommitWithDiff[]; skipFirstCommit: boolean }[];
+  sessions: { repoName: string; data: Session[] }[];
+  criteria: { rows: CriteriaRow[]; deadline: Date; plannedHours: number };
+};
+
+export async function exportToExcel(
+  data: ExcelExportData,
+  filename: string,
+): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "GitLog Analysis";
+  workbook.created = new Date();
+
+  const usedSheetNames = new Set<string>();
+
+  // Criteria Tabelle (die wichtigste Tabelle)
+  addCriteriaSheet(workbook, data.criteria);
+  usedSheetNames.add("Kriterien-Übersicht");
+
+  // Alle Sessions zusammengefasst in einem Sheet
+  const allSessions: Session[] = [];
+  data.sessions.forEach(sessionData => {
+    allSessions.push(...sessionData.data);
+  });
+  addSessionsSheet(workbook, "Alle Sessions", allSessions);
+  usedSheetNames.add("Alle Sessions");
+
+  // Commits Tabellen (eine pro Repository)
+  let commitIndex = 1;
+  for (const commitData of data.commits) {
+    const sheetName = createUniqueSheetName(
+      `C_${commitData.repoName}`,
+      usedSheetNames,
+      commitIndex
+    );
+    addCommitsSheet(workbook, sheetName, commitData.data, commitData.skipFirstCommit);
+    commitIndex++;
+  }
+
+  // Sessions Tabellen (eine pro Repository)
+  let sessionIndex = 1;
+  for (const sessionData of data.sessions) {
+    const sheetName = createUniqueSheetName(
+      `S_${sessionData.repoName}`,
+      usedSheetNames,
+      sessionIndex
+    );
+    addSessionsSheet(workbook, sheetName, sessionData.data);
+    sessionIndex++;
+  }
+
+  // Datei speichern
+  await workbook.xlsx.writeFile(filename);
+  console.log(`\n✓ Excel-Datei gespeichert: ${filename}`);
+}
+
+function addCriteriaSheet(
+  workbook: ExcelJS.Workbook,
+  data: { rows: CriteriaRow[]; deadline: Date; plannedHours: number },
+): void {
+  const sheet = workbook.addWorksheet("Kriterien-Übersicht");
+
+  // Header
+  sheet.columns = [
+    { header: "Autor", key: "author", width: 20 },
+    { header: "Total Commits", key: "total_commits", width: 15 },
+    { header: "Mixed Commits", key: "mixed_commits", width: 18 },
+    { header: "Source Commits", key: "source_commits", width: 18 },
+    { header: "Test Commits", key: "test_commits", width: 18 },
+    { header: "Comment Commits", key: "comment_commits", width: 18 },
+    { header: "Total Changes", key: "total_changes", width: 18 },
+    { header: "Source Changes", key: "source_changes", width: 18 },
+    { header: "Comment Changes", key: "comment_changes", width: 18 },
+    { header: "Test Changes", key: "test_changes", width: 18 },
+    { header: "Bundling", key: "bundling", width: 12 },
+    { header: "Start Date", key: "start_date", width: 20 },
+    { header: "End Date", key: "end_date", width: 20 },
+    { header: "Deadline", key: "deadline", width: 20 },
+    { header: "Sessions", key: "sessions", width: 12 },
+    { header: "Avg Commits", key: "avg_commits", width: 15 },
+    { header: "Avg Changes/h", key: "avg_changes", width: 15 },
+    { header: "Index", key: "index", width: 10 },
+  ];
+
+  // Header Style
+  sheet.getRow(1).font = { bold: true };
+  sheet.getRow(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF4472C4" },
+  };
+  sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+  // Daten hinzufügen
+  data.rows.forEach((row) => {
+    sheet.addRow({
+      author: row.author,
+      total_commits: row.totalCommits,
+      mixed_commits: formatWithPercent(row.totalCommits, row.totalMixedCommits),
+      source_commits: formatWithPercent(row.totalCommits, row.totalSourceCommits),
+      test_commits: formatWithPercent(row.totalCommits, row.totalTestCommits),
+      comment_commits: formatWithPercent(row.totalCommits, row.totalCommentCommits),
+      total_changes: formatWithPercent(row.totalChanges, row.totalChanges),
+      source_changes: formatWithPercent(row.totalChanges, row.totalSourceChanges),
+      comment_changes: formatWithPercent(row.totalChanges, row.totalCommentChanges),
+      test_changes: formatWithPercent(row.totalChanges, row.totalTestChanges),
+      bundling: row.bundling_coeff,
+      start_date: getDayAndTimeFromDate(row.startDate).day + " " + getDayAndTimeFromDate(row.startDate).time,
+      end_date: getDayAndTimeFromDate(row.endDate).day + " " + getDayAndTimeFromDate(row.endDate).time,
+      deadline: getDayAndTimeFromDate(data.deadline).day + " " + getDayAndTimeFromDate(data.deadline).time,
+      sessions: row.totalSessions,
+      avg_commits: row.averageCommitsPerSession,
+      avg_changes: row.avaregeChangesPerHourOverSessions,
+      index: calculateIndex(row, data.deadline, data.plannedHours),
+    });
+  });
+
+  // Autofilter
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: 18 },
+  };
+}
+
+function addCommitsSheet(
+  workbook: ExcelJS.Workbook,
+  sheetName: string,
+  commits: CommitWithDiff[],
+  skipFirstCommit: boolean,
+): void {
+  const sheet = workbook.addWorksheet(sheetName);
+
+  // Header
+  sheet.columns = [
+    { header: "Hash", key: "hash", width: 12 },
+    { header: "Autor", key: "author", width: 20 },
+    { header: "Subject", key: "subject", width: 40 },
+    { header: "Datum", key: "date", width: 20 },
+    { header: "Files", key: "files", width: 8 },
+    { header: "Source Ins", key: "source_ins", width: 12 },
+    { header: "Source Del", key: "source_del", width: 12 },
+    { header: "Source Total", key: "source_total", width: 12 },
+    { header: "Comment Ins", key: "comment_ins", width: 12 },
+    { header: "Comment Del", key: "comment_del", width: 12 },
+    { header: "Comment Total", key: "comment_total", width: 12 },
+    { header: "Tests Ins", key: "tests_ins", width: 12 },
+    { header: "Tests Del", key: "tests_del", width: 12 },
+    { header: "Tests Total", key: "tests_total", width: 12 },
+    { header: "Total", key: "total", width: 10 },
+    { header: "Type", key: "type", width: 12 },
+    { header: "Diff Hours", key: "diff_hours", width: 12 },
+    { header: "Diff Minutes", key: "diff_minutes", width: 12 },
+    { header: "Changes/h", key: "changes_hour", width: 12 },
+  ];
+
+  // Header Style
+  sheet.getRow(1).font = { bold: true };
+  sheet.getRow(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF70AD47" },
+  };
+  sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+  // Daten hinzufügen
+  commits.forEach((c) => {
+    sheet.addRow({
+      hash: c.hash.slice(0, 10),
+      author: c.author,
+      subject: c.subject,
+      date: c.day + " " + c.time,
+      files: c.filesChanged,
+      source_ins: c.sourceInsertions,
+      source_del: c.sourceDeletions,
+      source_total: c.totalSourceChanges,
+      comment_ins: c.commentInsertions,
+      comment_del: c.commentDeletions,
+      comment_total: c.totalCommentChanges,
+      tests_ins: c.testInsertions,
+      tests_del: c.testDeletions,
+      tests_total: c.totalTestChanges,
+      total: c.totalChanges,
+      type: CommitType[c.commitType],
+      diff_hours: Number(c.diffHours.toFixed(3)),
+      diff_minutes: Number(c.diffMinutes.toFixed(3)),
+      changes_hour: Number(c.changesPerHour.toFixed(2)),
+    });
+  });
+
+  // Bundling als Kommentar hinzufügen
+  const filteredCommits = skipFirstCommit ? commits.slice(1) : commits;
+  const bundling = calculateCommitBundling(filteredCommits);
+  sheet.addRow({});
+  sheet.addRow({ author: "Bundling:", subject: bundling });
+
+  // Autofilter
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: 19 },
+  };
+}
+
+function addSessionsSheet(
+  workbook: ExcelJS.Workbook,
+  sheetName: string,
+  sessions: Session[],
+): void {
+  const sheet = workbook.addWorksheet(sheetName);
+
+  // Header
+  sheet.columns = [
+    { header: "Autor", key: "author", width: 20 },
+    { header: "Session Index", key: "session_index", width: 15 },
+    { header: "Commits", key: "commits", width: 10 },
+    { header: "Duration (min)", key: "duration_min", width: 15 },
+    { header: "Total Changes", key: "total_changes", width: 15 },
+    { header: "Changes/h", key: "changes_hour", width: 12 },
+  ];
+
+  // Header Style
+  sheet.getRow(1).font = { bold: true };
+  sheet.getRow(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FFFFC000" },
+  };
+  sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+  // Daten hinzufügen
+  sessions.forEach((s) => {
+    sheet.addRow({
+      author: s.author,
+      session_index: s.sessionIndex,
+      commits: s.commitCount,
+      duration_min: s.durationMinutes,
+      total_changes: s.totalChanges,
+      changes_hour: s.changesPerHour ?? 0,
+    });
+  });
+
+  // Autofilter
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: 6 },
+  };
+}
+
+function createUniqueSheetName(
+  baseName: string,
+  usedNames: Set<string>,
+  index: number,
+): string {
+  // Excel Sheet-Namen dürfen max. 31 Zeichen haben und keine Sonderzeichen wie : \ / ? * [ ]
+  let sanitized = baseName.replace(/[:\\\/\?\*\[\]]/g, "_");
+
+  // Platz für Index reservieren (z.B. "_99")
+  const indexSuffix = `_${index}`;
+  const maxBaseLength = 31 - indexSuffix.length;
+
+  // Basis-Name kürzen
+  sanitized = sanitized.slice(0, maxBaseLength);
+
+  // Index hinzufügen für Eindeutigkeit
+  const finalName = sanitized + indexSuffix;
+
+  usedNames.add(finalName);
+  return finalName;
+}
+/** Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
+ * ----------------------
+*/

@@ -6,6 +6,7 @@ import {
   CommitType,
   CommitTypeRule,
   CommitWithDiff,
+  Session,
 } from "./types";
 import { runGit } from "./export_git_logs";
 
@@ -315,4 +316,21 @@ export function calculateCommitBundling(commits: CommitWithDiff[]) {
   // };
 
   return Number((Math.round(bundling * 100) / 100).toFixed(2));
+}
+
+export function calculateAvaregeChangesPerHourOverSessions(sessions: Session[], skipFirstCommit: boolean){
+  let amountOfSessions = 0;
+  let changes = 0;
+  if(skipFirstCommit){
+    for(let s = 1; s < sessions.length; s++){
+      amountOfSessions += 1;
+      changes += sessions[s].changesPerHour;
+    }
+  }else {
+    for(let s = 0; s < sessions.length; s++){
+      amountOfSessions += 1;
+      changes += sessions[s].changesPerHour;
+    }
+  }
+  return Math.round(changes / amountOfSessions);
 }
