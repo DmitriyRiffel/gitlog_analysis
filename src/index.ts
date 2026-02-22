@@ -1,4 +1,5 @@
 import { analyzeRepo } from "./analysis";
+import { calculateMetricThresholds } from "./calculations";
 import { askCliInput } from "./cli";
 import { exportGitLogs, getGitLogs } from "./export_git_logs";
 import {
@@ -6,12 +7,10 @@ import {
   printCommitsTable,
   printCriteriaTable,
   exportToExcel,
-  ExcelExportData,
 } from "./reporting";
-import { AuthorAggregation } from "./types";
+import { AuthorAggregation, ExcelExportData } from "./types";
 import {
   calculateAvaregeChangesPerHourOverSessions,
-  calculateLowerMadThreshold,
   findGitRepos,
   mergeAuthorMaps,
 } from "./utils";
@@ -41,7 +40,12 @@ async function main() {
   const excelData: ExcelExportData = {
     commits: [],
     sessions: [],
-    criteria: { rows: [], deadline: cli.deadline, plannedHours: cli.estimatedEffort },
+    criteria: { 
+      rows: [], 
+      deadline: cli.deadline, 
+      plannedHours: cli.estimatedEffort,
+      thresholds: { commitCount: 0, totalSourceChanges: 0, totalTestChanges: 0, avgChangesPerHour: 0 } // wird später gesetzt
+    },
   };
 
   for (const repo of repoDirs) {
@@ -92,50 +96,28 @@ async function main() {
     idx++;
   }
 
-  const authorTotalChanges = Array.from(students.values()).map(
-    (a) => a.totalChanges,
-  );
-  const authorTotalChangesInTests = Array.from(students.values()).map(
-    (a) => a.totalTestChanges,
-  );
-
-  const thresholdTotalChanges = calculateLowerMadThreshold(
-    authorTotalChanges,
-    2,
-  );
-  const thresholdTotalChangesInTests = calculateLowerMadThreshold(
-    authorTotalChangesInTests,
-    2,
-  );
+  // Berechne alle Schwellwerte gebündelt
+  const thresholds = calculateMetricThresholds(students, cli.commitThreshold, 2);
 
   const criteriaRows = buildCriteriaRows(
     students,
-    cli.commitThreshold,
-    thresholdTotalChanges,
-    thresholdTotalChangesInTests,
+    thresholds,
     cli.skipFirstCommit,
     cli.deadline,
   );
-  let count: number = 0;
-  for (const changes of authorTotalChanges) {
-    count += changes;
-  }
-  console.log("Untere Grenze für Commits:", cli.commitThreshold);
-  console.log(
-    "Untere Grenze für Changes:",
-    thresholdTotalChanges,
-    "Mittelwert:",
-    count / authorTotalChanges.length,
-  );
-  console.log(
-    "Untere Grenze für Tests-Änderungen",
-    thresholdTotalChangesInTests,
-  );
-  printCriteriaTable(criteriaRows, cli.deadline, cli.estimatedEffort, repoName);
+
+  console.log("\n=== Schwellwerte ===");
+  console.log("Commits:", thresholds.commitCount);
+  console.log("Total Source Changes:", thresholds.totalSourceChanges);
+  console.log("Total Test Changes:", thresholds.totalTestChanges);
+  console.log("Avg Changes/h:", thresholds.avgChangesPerHour.toFixed(2));
+
+  printCriteriaTable(criteriaRows, thresholds, cli.deadline, cli.estimatedEffort, repoName);
 
   // Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
   // Criteria-Daten für Excel setzen
   excelData.criteria.rows = criteriaRows;
+  excelData.criteria.thresholds = thresholds;
   // Excel-Export
   const excelFilename = `analysis_${repoName}.xlsx`;
   await exportToExcel(excelData, excelFilename);

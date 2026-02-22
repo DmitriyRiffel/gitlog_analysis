@@ -9,6 +9,7 @@ import {
   ZERO_STATS,
 } from "./types";
 import {
+  calculateAvaregeChangesPerHourOverSessions,
   calculateCommitBundling,
   determineCommitTypeFromChanges,
   determineCommitTypeFromCommit,
@@ -308,6 +309,14 @@ function aggregateAuthors(
         a.bundling_coeff = calculateCommitBundling(authorCommits);
       }
     }
+  }
+
+  // Berechne avaregeChangesPerHourOverSessions für jeden Author
+  for (const author of map.values()) {
+    author.avaregeChangesPerHourOverSessions = calculateAvaregeChangesPerHourOverSessions(
+      author.sessions,
+      skipFirstCommit
+    );
   }
 
   return map;

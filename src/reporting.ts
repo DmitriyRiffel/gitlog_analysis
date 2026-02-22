@@ -4,6 +4,10 @@ import {
   AuthorAggregation,
   Session,
   CommitType,
+  MetricWeights,
+  MetricThresholds,
+  CliInput,
+  ExcelExportData,
 } from "./types";
 import {
   calculateCommitBundling,
@@ -48,9 +52,7 @@ export function printCommitsTable(
 
 export function buildCriteriaRows(
   authors: Map<string, AuthorAggregation>,
-  thresholdCommitCount: number,
-  thresholdtotalSourceChanges: number,
-  thresholdChangesInTests: number,
+  thresholds: MetricThresholds,
   skipFirstCommit: boolean,
   deadline = new Date("2024-04-28T23:59:00"),
 ): CriteriaRow[] {
@@ -64,9 +66,9 @@ export function buildCriteriaRows(
       totalCommentChanges: a.totalCommentChanges,
       totalChanges: a.totalChanges,
 
-      areFewCommits: a.totalCommits <= thresholdCommitCount,
-      areFewChanges: a.totalSourceChanges <= thresholdtotalSourceChanges,
-      areFewChangesInTests: a.totalTestChanges <= thresholdChangesInTests,
+      areFewCommits: a.totalCommits <= thresholds.commitCount,
+      areFewChanges: a.totalSourceChanges <= thresholds.totalSourceChanges,
+      areFewChangesInTests: a.totalTestChanges <= thresholds.totalTestChanges,
 
       startDate: startDate,
       endDate: a.lastCommitDate,
@@ -85,11 +87,7 @@ export function buildCriteriaRows(
       firstCommitOnDeadline:
         getDayAndTimeFromDate(startDate).day ===
         getDayAndTimeFromDate(deadline).day,
-      avaregeChangesPerHourOverSessions:
-        calculateAvaregeChangesPerHourOverSessions(
-          a.sessions,
-          skipFirstCommit,
-        ),
+      avaregeChangesPerHourOverSessions: a.avaregeChangesPerHourOverSessions,
     };
   });
 }
@@ -101,10 +99,14 @@ function formatWithPercent(total: number, value: number): string {
 
 export function printCriteriaTable(
   rows: CriteriaRow[],
+  thresholds: MetricThresholds,
   deadline = new Date("2024-04-28T23:59:00"),
   plannedHours: number = 6,
   repoName: string,
 ) {
+  // Gewichte basierend auf allen Rows berechnen
+  const weights = calculateMetricWeights(rows, thresholds, deadline, plannedHours);
+
   const tableRows = rows.map((row) => ({
     author: row.author,
     total_commits: `${row.totalCommits}`,
@@ -151,25 +153,119 @@ export function printCriteriaTable(
     /** Average changes per hour over the sessions */
     avg_changes: row.avaregeChangesPerHourOverSessions,
 
-    index: calculateIndex(row, deadline, plannedHours),
+    index: calculateIndex(row, weights, thresholds, deadline, plannedHours),
   }));
 
   console.table(tableRows);
   // exportCsv(tableRows, `criteriaTable_${repoName}.csv`);
 }
 
+function calculateMetricWeights(
+  rows: CriteriaRow[],
+  thresholds: MetricThresholds,
+  deadline: Date,
+  plannedHours: number,
+): MetricWeights {
+  const totalRepos = rows.length;
+
+  // Zähle wie viele Repos die Metrik erfüllen
+  const countFirstCommitOnDeadline = rows.filter((r) => r.firstCommitOnDeadline).length;
+  const countAreFewChanges = rows.filter((r) => r.areFewChanges).length;
+  const countAreFewChangesInTests = rows.filter((r) => r.areFewChangesInTests).length;
+  const countAreFewCommits = rows.filter((r) => r.totalCommits <= thresholds.commitCount).length;
+  const countIsTooLateFirstCommit = rows.filter((r) =>
+    isTooLateFirstCommit(r.startDate, deadline, plannedHours)
+  ).length;
+  const countChangesPerHour = rows.filter((r) => r.avaregeChangesPerHourOverSessions >= thresholds.avgChangesPerHour).length;
+
+  // Berechne Anteile (p_i)
+  const pFirstCommitOnDeadline = countFirstCommitOnDeadline / totalRepos;
+  const pAreFewChanges = countAreFewChanges / totalRepos;
+  const pAreFewChangesInTests = countAreFewChangesInTests / totalRepos;
+  const pAreFewCommits = countAreFewCommits / totalRepos;
+  const pIsTooLateFirstCommit = countIsTooLateFirstCommit / totalRepos;
+  const pChangesPerHour = countChangesPerHour / totalRepos;
+
+  // Berechne unormalisierte Gewichte: w = p(1-p)
+  const wFirstCommitOnDeadline = pFirstCommitOnDeadline * (1 - pFirstCommitOnDeadline);
+  const wAreFewChanges = pAreFewChanges * (1 - pAreFewChanges);
+  const wAreFewChangesInTests = pAreFewChangesInTests * (1 - pAreFewChangesInTests);
+  const wAreFewCommits = pAreFewCommits * (1 - pAreFewCommits);
+  const wIsTooLateFirstCommit = pIsTooLateFirstCommit * (1 - pIsTooLateFirstCommit);
+  const wChangesPerHour = pChangesPerHour * (1 - pChangesPerHour);
+
+  // Summe aller Gewichte
+  const sumWeights =
+    wFirstCommitOnDeadline +
+    wAreFewChanges +
+    wAreFewChangesInTests +
+    wAreFewCommits +
+    wIsTooLateFirstCommit +
+    wChangesPerHour;
+
+  console.log("\n--- Unormalisierte Gewichte w = p(1-p) ---");
+  console.log(`wFirstCommitOnDeadline:  ${wFirstCommitOnDeadline.toFixed(4)}`);
+  console.log(`wAreFewChanges:          ${wAreFewChanges.toFixed(4)}`);
+  console.log(`wAreFewChangesInTests:   ${wAreFewChangesInTests.toFixed(4)}`);
+  console.log(`wAreFewCommits:          ${wAreFewCommits.toFixed(4)}`);
+  console.log(`wIsTooLateFirstCommit:   ${wIsTooLateFirstCommit.toFixed(4)}`);
+  console.log(`wChangesPerHour:         ${wChangesPerHour.toFixed(4)}`);
+  console.log(`Summe:                   ${sumWeights.toFixed(4)}`);
+
+  const normalizedWeights = {
+    firstCommitOnDeadline: wFirstCommitOnDeadline / sumWeights,
+    areFewChanges: wAreFewChanges / sumWeights,
+    areFewChangesInTests: wAreFewChangesInTests / sumWeights,
+    areFewCommits: wAreFewCommits / sumWeights,
+    isTooLateFirstCommit: wIsTooLateFirstCommit / sumWeights,
+    changesPerHour: wChangesPerHour / sumWeights
+  };
+
+  console.log("\n--- Normalisierte Gewichte ---");
+  console.log(`firstCommitOnDeadline:   ${normalizedWeights.firstCommitOnDeadline.toFixed(4)} (${(normalizedWeights.firstCommitOnDeadline * 100).toFixed(1)}%)`);
+  console.log(`areFewChanges:           ${normalizedWeights.areFewChanges.toFixed(4)} (${(normalizedWeights.areFewChanges * 100).toFixed(1)}%)`);
+  console.log(`areFewChangesInTests:    ${normalizedWeights.areFewChangesInTests.toFixed(4)} (${(normalizedWeights.areFewChangesInTests * 100).toFixed(1)}%)`);
+  console.log(`areFewCommits:           ${normalizedWeights.areFewCommits.toFixed(4)} (${(normalizedWeights.areFewCommits * 100).toFixed(1)}%)`);
+  console.log(`isTooLateFirstCommit:    ${normalizedWeights.isTooLateFirstCommit.toFixed(4)} (${(normalizedWeights.isTooLateFirstCommit * 100).toFixed(1)}%)`);
+  console.log(`changesPerHour:          ${normalizedWeights.changesPerHour.toFixed(4)} (${(normalizedWeights.changesPerHour * 100).toFixed(1)}%)`);
+  console.log("===================================\n");
+
+
+  // Konsolenausgabe zur Nachvollziehbarkeit
+  console.log("\n=== Metrik-Gewichtsberechnung ===");
+  console.log(`Gesamtanzahl Repos: ${totalRepos}`);
+  console.log("\n--- Schwellwerte ---");
+  console.log(`Commits:              ${thresholds.commitCount}`);
+  console.log(`Total Source Changes: ${thresholds.totalSourceChanges}`);
+  console.log(`Total Test Changes:   ${thresholds.totalTestChanges}`);
+  console.log(`Avg Changes/h:        ${thresholds.avgChangesPerHour.toFixed(2)}`);
+  console.log("\n--- Anzahl auffälliger Repos pro Metrik ---");
+  console.log(`firstCommitOnDeadline:   ${countFirstCommitOnDeadline} von ${totalRepos} (${(pFirstCommitOnDeadline * 100).toFixed(1)}%)`);
+  console.log(`areFewChanges:           ${countAreFewChanges} von ${totalRepos} (${(pAreFewChanges * 100).toFixed(1)}%)`);
+  console.log(`areFewChangesInTests:    ${countAreFewChangesInTests} von ${totalRepos} (${(pAreFewChangesInTests * 100).toFixed(1)}%)`);
+  console.log(`areFewCommits (≤${thresholds.commitCount}):     ${countAreFewCommits} von ${totalRepos} (${(pAreFewCommits * 100).toFixed(1)}%)`);
+  console.log(`isTooLateFirstCommit:    ${countIsTooLateFirstCommit} von ${totalRepos} (${(pIsTooLateFirstCommit * 100).toFixed(1)}%)`);
+  console.log(`changesPerHour (≥${thresholds.avgChangesPerHour.toFixed(2)}): ${countChangesPerHour} von ${totalRepos} (${(pChangesPerHour * 100).toFixed(1)}%)`);
+
+  return normalizedWeights;
+}
+
 function calculateIndex(
   row: CriteriaRow,
+  weights: MetricWeights,
+  thresholds: MetricThresholds,
   deadline = new Date("2024-04-28T23:59:00"),
-  plannedHours = 6,
+  plannedHours = 6
 ): number {
   let index: number = 0;
-  if (row.firstCommitOnDeadline) index += 0.25;
-  if (row.areFewChanges) index += 0.125;
-  if (row.areFewChangesInTests) index += 0.125;
-  if (row.areFewCommits) index += 0.25;
+  if (row.firstCommitOnDeadline) index += weights.firstCommitOnDeadline;
+  if (row.areFewChanges) index += weights.areFewChanges;
+  if (row.areFewChangesInTests) index += weights.areFewChangesInTests;
+  if (row.areFewCommits) index += weights.areFewCommits;
   if (isTooLateFirstCommit(row.startDate, deadline, plannedHours))
-    index += 0.25;
+    index += weights.isTooLateFirstCommit;
+  if (row.avaregeChangesPerHourOverSessions >= thresholds.avgChangesPerHour)
+    index += weights.changesPerHour;
   return Number(index.toFixed(2));
 }
 
@@ -205,13 +301,6 @@ function calculateAverageCommitsPerSession(sessions: Session[]) {
   return Number((temp / counter).toFixed(1));
 }
 
-// Excel Export Funktionalität
-export type ExcelExportData = {
-  commits: { repoName: string; data: CommitWithDiff[]; skipFirstCommit: boolean }[];
-  sessions: { repoName: string; data: Session[] }[];
-  criteria: { rows: CriteriaRow[]; deadline: Date; plannedHours: number };
-};
-
 export async function exportToExcel(
   data: ExcelExportData,
   filename: string,
@@ -236,9 +325,12 @@ export async function exportToExcel(
 
 function addCriteriaSheet(
   workbook: ExcelJS.Workbook,
-  data: { rows: CriteriaRow[]; deadline: Date; plannedHours: number },
+  data: { rows: CriteriaRow[]; deadline: Date; plannedHours: number; thresholds: MetricThresholds },
 ): void {
   const sheet = workbook.addWorksheet("Kriterien-Übersicht");
+
+  // Gewichte berechnen
+  const weights = calculateMetricWeights(data.rows, data.thresholds, data.deadline, data.plannedHours);
 
   // Header
   sheet.columns = [
@@ -291,7 +383,7 @@ function addCriteriaSheet(
       sessions: row.totalSessions,
       avg_commits: row.averageCommitsPerSession,
       avg_changes: row.avaregeChangesPerHourOverSessions,
-      index: calculateIndex(row, data.deadline, data.plannedHours),
+      index: calculateIndex(row, weights, data.thresholds, data.deadline, data.plannedHours),
     });
   });
 

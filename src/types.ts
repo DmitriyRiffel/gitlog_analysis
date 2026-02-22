@@ -107,11 +107,17 @@ export type CriteriaRow = {
   totalTestCommits: number;
   totalMixedCommits: number;
   totalCommits: number;
-  averageChangesPerHour: number;
   averageCommitsPerSession: number;
   firstCommitOnDeadline: boolean;
   bundling_coeff: number;
   avaregeChangesPerHourOverSessions: number;
+};
+
+// Excel Export Funktionalität
+export type ExcelExportData = {
+  commits: { repoName: string; data: CommitWithDiff[]; skipFirstCommit: boolean }[];
+  sessions: { repoName: string; data: Session[] }[];
+  criteria: { rows: CriteriaRow[]; deadline: Date; plannedHours: number; thresholds: MetricThresholds };
 };
 
 export type Session = Stats & {
@@ -122,6 +128,22 @@ export type Session = Stats & {
   durationMinutes: number;
   commitCount: number;
   changesPerHour: number;
+};
+
+export type MetricWeights = {
+  firstCommitOnDeadline: number;
+  areFewChanges: number;
+  areFewChangesInTests: number;
+  areFewCommits: number;
+  isTooLateFirstCommit: number;
+  changesPerHour: number;
+};
+
+export type MetricThresholds = {
+  commitCount: number;
+  totalSourceChanges: number;
+  totalTestChanges: number;
+  avgChangesPerHour: number;
 };
 
 export type CliInput = {

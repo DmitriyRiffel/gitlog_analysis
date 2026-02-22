@@ -69,33 +69,6 @@ export function getDayAndTimeFromDate(date: Date): {
   return { day, time };
 }
 
-function calculateMedian(values: number[]) {
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-
-  if (sorted.length % 2 !== 0) {
-    return sorted[mid];
-  }
-
-  return (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
-function calculateMad(values: number[]): number {
-  const med = calculateMedian(values);
-  const deviations = values.map((v) => Math.abs(v - med));
-
-  return calculateMedian(deviations);
-}
-
-export function calculateLowerMadThreshold(
-  values: number[],
-  k: number = 2,
-): number {
-  const median = calculateMedian(values);
-  const mad = calculateMad(values);
-  return median - k * mad;
-}
-
 export function shouldIgnoreFile(file: string): boolean {
   if (file.endsWith(".json")) return true;
   // if (
