@@ -66,8 +66,8 @@ export function buildCriteriaRows(
       totalCommentChanges: a.totalCommentChanges,
       totalChanges: a.totalChanges,
 
-      areFewCommits: a.totalCommits <= thresholds.commitCount,
-      areFewChanges: a.totalSourceChanges <= thresholds.totalSourceChanges,
+      areFewCommits: a.totalCommits <= thresholds.totalCommits,
+      areFewChanges: a.totalChanges <= thresholds.totalChanges,
       areFewChangesInTests: a.totalTestChanges <= thresholds.totalTestChanges,
 
       startDate: startDate,
@@ -87,6 +87,7 @@ export function buildCriteriaRows(
       firstCommitOnDeadline:
         getDayAndTimeFromDate(startDate).day ===
         getDayAndTimeFromDate(deadline).day,
+      isBundled: a.totalCommits >= thresholds.totalCommits && a.bundling_coeff >= thresholds.bundling,
       avaregeChangesPerHourOverSessions: a.avaregeChangesPerHourOverSessions,
     };
   });
@@ -118,8 +119,8 @@ export function printCriteriaTable(
       row.totalCommentCommits,
     ),
     total_changes: formatWithPercent(row.totalChanges, row.totalChanges),
-    source_changes: formatWithPercent(row.totalChanges, row.totalSourceChanges),
-    comment_changes: formatWithPercent(
+    "source_changes*": formatWithPercent(row.totalChanges, row.totalSourceChanges),
+    "comment_changes*": formatWithPercent(
       row.totalChanges,
       row.totalCommentChanges,
     ),
@@ -137,18 +138,18 @@ export function printCriteriaTable(
       getDayAndTimeFromDate(deadline).day +
       " " +
       getDayAndTimeFromDate(deadline).time,
-    // first_on_deadline: row.firstCommitOnDeadline ? "ja" : "nein",
-    // late_start: isTooLateFirstCommit(row.startDate, deadline, plannedHours)
-    //   ? "ja"
-    //   : "nein",
+    first_on_deadline: row.firstCommitOnDeadline ? "ja" : "nein",
+    late_start: isTooLateFirstCommit(row.startDate, deadline, plannedHours)
+      ? "ja"
+      : "nein",
     // few_commits: row.areFewCommits ? "ja" : "nein",
     // few_changes: row.areFewChanges ? "ja" : "nein",
     // few_tests: row.areFewChangesInTests ? "ja" : "nein",
 
-    sessions: row.totalSessions,
+    "sessions*": row.totalSessions,
     // average_changes_hour_session: row.averageChangesPerHour,
     // average_changes_session: row.totalSourceChanges / row.totalSessions,
-    avg_commits: row.averageCommitsPerSession,
+    "avg_commits*": row.averageCommitsPerSession,
 
     /** Average changes per hour over the sessions */
     avg_changes: row.avaregeChangesPerHourOverSessions,
@@ -172,11 +173,12 @@ function calculateMetricWeights(
   const countFirstCommitOnDeadline = rows.filter((r) => r.firstCommitOnDeadline).length;
   const countAreFewChanges = rows.filter((r) => r.areFewChanges).length;
   const countAreFewChangesInTests = rows.filter((r) => r.areFewChangesInTests).length;
-  const countAreFewCommits = rows.filter((r) => r.totalCommits <= thresholds.commitCount).length;
+  const countAreFewCommits = rows.filter((r) => r.totalCommits <= thresholds.totalCommits).length;
   const countIsTooLateFirstCommit = rows.filter((r) =>
     isTooLateFirstCommit(r.startDate, deadline, plannedHours)
   ).length;
   const countChangesPerHour = rows.filter((r) => r.avaregeChangesPerHourOverSessions >= thresholds.avgChangesPerHour).length;
+  const countIsBundled = rows.filter((r) => r.isBundled).length;
 
   // Berechne Anteile (p_i)
   const pFirstCommitOnDeadline = countFirstCommitOnDeadline / totalRepos;
@@ -185,6 +187,7 @@ function calculateMetricWeights(
   const pAreFewCommits = countAreFewCommits / totalRepos;
   const pIsTooLateFirstCommit = countIsTooLateFirstCommit / totalRepos;
   const pChangesPerHour = countChangesPerHour / totalRepos;
+  const pIsBundled = countIsBundled / totalRepos;
 
   // Berechne unormalisierte Gewichte: w = p(1-p)
   const wFirstCommitOnDeadline = pFirstCommitOnDeadline * (1 - pFirstCommitOnDeadline);
@@ -193,6 +196,7 @@ function calculateMetricWeights(
   const wAreFewCommits = pAreFewCommits * (1 - pAreFewCommits);
   const wIsTooLateFirstCommit = pIsTooLateFirstCommit * (1 - pIsTooLateFirstCommit);
   const wChangesPerHour = pChangesPerHour * (1 - pChangesPerHour);
+  const wIsBundled = pIsBundled * (1 - pIsBundled);
 
   // Summe aller Gewichte
   const sumWeights =
@@ -201,15 +205,16 @@ function calculateMetricWeights(
     wAreFewChangesInTests +
     wAreFewCommits +
     wIsTooLateFirstCommit +
-    wChangesPerHour;
+    wChangesPerHour +
+    wIsBundled;
 
-  console.log("\n--- Unormalisierte Gewichte w = p(1-p) ---");
-  console.log(`wFirstCommitOnDeadline:  ${wFirstCommitOnDeadline.toFixed(4)}`);
+  console.log(`\nwFirstCommitOnDeadline:  ${wFirstCommitOnDeadline.toFixed(4)}`);
   console.log(`wAreFewChanges:          ${wAreFewChanges.toFixed(4)}`);
   console.log(`wAreFewChangesInTests:   ${wAreFewChangesInTests.toFixed(4)}`);
   console.log(`wAreFewCommits:          ${wAreFewCommits.toFixed(4)}`);
   console.log(`wIsTooLateFirstCommit:   ${wIsTooLateFirstCommit.toFixed(4)}`);
   console.log(`wChangesPerHour:         ${wChangesPerHour.toFixed(4)}`);
+  console.log(`wIsBundled:              ${wIsBundled.toFixed(4)}`);
   console.log(`Summe:                   ${sumWeights.toFixed(4)}`);
 
   const normalizedWeights = {
@@ -218,7 +223,8 @@ function calculateMetricWeights(
     areFewChangesInTests: wAreFewChangesInTests / sumWeights,
     areFewCommits: wAreFewCommits / sumWeights,
     isTooLateFirstCommit: wIsTooLateFirstCommit / sumWeights,
-    changesPerHour: wChangesPerHour / sumWeights
+    changesPerHour: wChangesPerHour / sumWeights,
+    isBundled: wIsBundled / sumWeights
   };
 
   console.log("\n--- Normalisierte Gewichte ---");
@@ -228,6 +234,7 @@ function calculateMetricWeights(
   console.log(`areFewCommits:           ${normalizedWeights.areFewCommits.toFixed(4)} (${(normalizedWeights.areFewCommits * 100).toFixed(1)}%)`);
   console.log(`isTooLateFirstCommit:    ${normalizedWeights.isTooLateFirstCommit.toFixed(4)} (${(normalizedWeights.isTooLateFirstCommit * 100).toFixed(1)}%)`);
   console.log(`changesPerHour:          ${normalizedWeights.changesPerHour.toFixed(4)} (${(normalizedWeights.changesPerHour * 100).toFixed(1)}%)`);
+  console.log(`isBundled:               ${normalizedWeights.isBundled.toFixed(4)} (${(normalizedWeights.isBundled * 100).toFixed(1)}%)`);
   console.log("===================================\n");
 
 
@@ -235,17 +242,19 @@ function calculateMetricWeights(
   console.log("\n=== Metrik-Gewichtsberechnung ===");
   console.log(`Gesamtanzahl Repos: ${totalRepos}`);
   console.log("\n--- Schwellwerte ---");
-  console.log(`Commits:              ${thresholds.commitCount}`);
-  console.log(`Total Source Changes: ${thresholds.totalSourceChanges}`);
+  console.log(`Commits:              ${thresholds.totalCommits}`);
+  console.log(`Total Changes: ${thresholds.totalChanges}`);
   console.log(`Total Test Changes:   ${thresholds.totalTestChanges}`);
   console.log(`Avg Changes/h:        ${thresholds.avgChangesPerHour.toFixed(2)}`);
+  console.log(`Bundling Threshold:   ${thresholds.bundling.toFixed(4)}`);
   console.log("\n--- Anzahl auffälliger Repos pro Metrik ---");
   console.log(`firstCommitOnDeadline:   ${countFirstCommitOnDeadline} von ${totalRepos} (${(pFirstCommitOnDeadline * 100).toFixed(1)}%)`);
   console.log(`areFewChanges:           ${countAreFewChanges} von ${totalRepos} (${(pAreFewChanges * 100).toFixed(1)}%)`);
   console.log(`areFewChangesInTests:    ${countAreFewChangesInTests} von ${totalRepos} (${(pAreFewChangesInTests * 100).toFixed(1)}%)`);
-  console.log(`areFewCommits (≤${thresholds.commitCount}):     ${countAreFewCommits} von ${totalRepos} (${(pAreFewCommits * 100).toFixed(1)}%)`);
+  console.log(`areFewCommits (≤${thresholds.totalCommits}):     ${countAreFewCommits} von ${totalRepos} (${(pAreFewCommits * 100).toFixed(1)}%)`);
   console.log(`isTooLateFirstCommit:    ${countIsTooLateFirstCommit} von ${totalRepos} (${(pIsTooLateFirstCommit * 100).toFixed(1)}%)`);
   console.log(`changesPerHour (≥${thresholds.avgChangesPerHour.toFixed(2)}): ${countChangesPerHour} von ${totalRepos} (${(pChangesPerHour * 100).toFixed(1)}%)`);
+  console.log(`isBundled (commits≥${thresholds.totalCommits} && bundling≥${thresholds.bundling.toFixed(4)}): ${countIsBundled} von ${totalRepos} (${(pIsBundled * 100).toFixed(1)}%)`);
 
   return normalizedWeights;
 }
@@ -266,6 +275,8 @@ function calculateIndex(
     index += weights.isTooLateFirstCommit;
   if (row.avaregeChangesPerHourOverSessions >= thresholds.avgChangesPerHour)
     index += weights.changesPerHour;
+  if (row.isBundled)
+    index += weights.isBundled;
   return Number(index.toFixed(2));
 }
 
@@ -278,6 +289,14 @@ function isTooLateFirstCommit(
   deadline: Date,
   plannedHours: number,
 ): boolean {
+  /**
+   *  const cutoffTime = subtractHours(deadline, plannedHours);
+  const deadlineDay = getDayAndTimeFromDate(deadline).day;
+  const commitDay = getDayAndTimeFromDate(firstCommitAt).day;
+
+  // Nur relevant wenn am Deadline-Tag, sonst ist es zu spät/falsch
+  return commitDay === deadlineDay && firstCommitAt > cutoffTime;
+   */
   return firstCommitAt > subtractHours(deadline, plannedHours);
 }
 
@@ -295,7 +314,7 @@ function calculateAverageCommitsPerSession(sessions: Session[]) {
   let temp = 0;
   let counter = 0;
   for (const s of sessions) {
-    temp += s.commitCount;
+    temp += s.totalCommits;
     counter++;
   }
   return Number((temp / counter).toFixed(1));
@@ -428,7 +447,7 @@ function addAllSessionsSheet(
         repository: sessionData.repoName,
         author: s.author,
         session_index: s.sessionIndex,
-        commits: s.commitCount,
+        commits: s.totalCommits,
         duration_min: s.durationMinutes,
         total_changes: s.totalChanges,
         changes_hour: s.changesPerHour ?? 0,

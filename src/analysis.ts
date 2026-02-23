@@ -387,7 +387,7 @@ function newSession(commit: CommitWithDiff, index: number): Session {
     endDate: commit.date,
     durationMinutes: 0,
     commitType: determineCommitTypeFromCommit(commit),
-    commitCount: 0,
+    totalCommits: 0,
     filesChanged: 0,
     totalChanges: 0,
     sourceInsertions: 0,
@@ -405,7 +405,7 @@ function newSession(commit: CommitWithDiff, index: number): Session {
 
 function addCommit(session: Session, commit: CommitWithDiff) {
   session.endDate = commit.date;
-  session.commitCount += 1;
+  session.totalCommits += 1;
 
   session.filesChanged += commit.filesChanged;
   session.sourceInsertions += commit.sourceInsertions;
@@ -423,7 +423,7 @@ function finalizeSession(session: Session) {
 
   session.durationMinutes = Number(Math.max(0, duration).toFixed(1));
 
-  if (session.commitCount >= 3) {
+  if (session.totalCommits >= 3) {
     session.changesPerHour =
       session.totalChanges / (session.durationMinutes / 60);
   } else {

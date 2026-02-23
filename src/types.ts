@@ -110,6 +110,7 @@ export type CriteriaRow = {
   averageCommitsPerSession: number;
   firstCommitOnDeadline: boolean;
   bundling_coeff: number;
+  isBundled: boolean;
   avaregeChangesPerHourOverSessions: number;
 };
 
@@ -126,7 +127,7 @@ export type Session = Stats & {
   startDate: Date;
   endDate: Date;
   durationMinutes: number;
-  commitCount: number;
+  totalCommits: number;
   changesPerHour: number;
 };
 
@@ -137,13 +138,15 @@ export type MetricWeights = {
   areFewCommits: number;
   isTooLateFirstCommit: number;
   changesPerHour: number;
+  isBundled: number;
 };
 
 export type MetricThresholds = {
-  commitCount: number;
-  totalSourceChanges: number;
+  totalCommits: number;
+  totalChanges: number;
   totalTestChanges: number;
   avgChangesPerHour: number;
+  bundling: number;
 };
 
 export type CliInput = {

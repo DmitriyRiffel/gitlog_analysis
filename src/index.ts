@@ -16,7 +16,7 @@ import {
 } from "./utils";
 
 async function main() {
-  const repoName = "sample4";
+  const repoName = "sample1";
 
   const cli = await askCliInput(repoName);
 
@@ -32,7 +32,7 @@ async function main() {
   console.log("Geschätzte Aufwand in Stunden: ", cli.estimatedEffort);
   // await exportGitLogs(repoDirs);
 
-  const commitCountsPerRepo: number[] = [];
+  const totalCommitssPerRepo: number[] = [];
   const students = new Map<string, AuthorAggregation>();
 
   // Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
@@ -40,11 +40,11 @@ async function main() {
   const excelData: ExcelExportData = {
     commits: [],
     sessions: [],
-    criteria: { 
-      rows: [], 
-      deadline: cli.deadline, 
+    criteria: {
+      rows: [],
+      deadline: cli.deadline,
       plannedHours: cli.estimatedEffort,
-      thresholds: { commitCount: 0, totalSourceChanges: 0, totalTestChanges: 0, avgChangesPerHour: 0 } // wird später gesetzt
+      thresholds: { totalCommits: 0, totalChanges: 0, totalTestChanges: 0, avgChangesPerHour: 0, bundling: 0 } // wird später gesetzt
     },
   };
 
@@ -53,7 +53,7 @@ async function main() {
       repo,
       cli.skipFirstCommit,
     );
-    const nonTestCommitCount = commitsWithDiff.filter(
+    const nonTesttotalCommits = commitsWithDiff.filter(
       (c) => c.totalSourceChanges > 0 || c.totalCommentChanges > 0,
     ).length;
     let idx = 0;
@@ -63,8 +63,8 @@ async function main() {
       " ",
       commitsWithDiff.length,
     );
-    console.log("nontestCommitLength : ", nonTestCommitCount);
-    commitCountsPerRepo.push(nonTestCommitCount);
+    console.log("nontestCommitLength : ", nonTesttotalCommits);
+    totalCommitssPerRepo.push(nonTesttotalCommits);
     mergeAuthorMaps(students, authors);
     printCommitsTable(commitsWithDiff, cli.skipFirstCommit);
     console.log("Durschnittliche Anzahl von Änderungen pro Stunde", calculateAvaregeChangesPerHourOverSessions(sessions, cli.skipFirstCommit));
@@ -72,7 +72,7 @@ async function main() {
       sessions.map((s) => ({
         author: s.author,
         session_index: s.sessionIndex,
-        commits: s.commitCount,
+        commits: s.totalCommits,
         duration_min: s.durationMinutes,
         total_changes: s.totalChanges,
         changes_hour: s.changesPerHour ?? 0,
@@ -97,7 +97,7 @@ async function main() {
   }
 
   // Berechne alle Schwellwerte gebündelt
-  const thresholds = calculateMetricThresholds(students, cli.commitThreshold, 2);
+  const thresholds = calculateMetricThresholds(students, cli.commitThreshold, 1);
 
   const criteriaRows = buildCriteriaRows(
     students,
@@ -107,8 +107,8 @@ async function main() {
   );
 
   console.log("\n=== Schwellwerte ===");
-  console.log("Commits:", thresholds.commitCount);
-  console.log("Total Source Changes:", thresholds.totalSourceChanges);
+  console.log("Commits:", thresholds.totalCommits);
+  console.log("Total Changes:", thresholds.totalChanges);
   console.log("Total Test Changes:", thresholds.totalTestChanges);
   console.log("Avg Changes/h:", thresholds.avgChangesPerHour.toFixed(2));
 
