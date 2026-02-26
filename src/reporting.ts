@@ -1,3 +1,4 @@
+import { calculateAverageChangesPerHour, calculateAverageCommitsPerSession, calculateIndex, calculateMetricWeights, isTooLateFirstCommit } from "./calculations";
 import {
   CommitWithDiff,
   CriteriaRow,
@@ -101,8 +102,8 @@ function formatWithPercent(total: number, value: number): string {
 export function printCriteriaTable(
   rows: CriteriaRow[],
   thresholds: MetricThresholds,
-  deadline = new Date("2024-04-28T23:59:00"),
-  plannedHours: number = 6,
+  deadline: Date,
+  plannedHours: number,
   repoName: string,
 ) {
   // Gewichte basierend auf allen Rows berechnen
@@ -142,13 +143,7 @@ export function printCriteriaTable(
     late_start: isTooLateFirstCommit(row.startDate, deadline, plannedHours)
       ? "ja"
       : "nein",
-    // few_commits: row.areFewCommits ? "ja" : "nein",
-    // few_changes: row.areFewChanges ? "ja" : "nein",
-    // few_tests: row.areFewChangesInTests ? "ja" : "nein",
-
     "sessions*": row.totalSessions,
-    // average_changes_hour_session: row.averageChangesPerHour,
-    // average_changes_session: row.totalSourceChanges / row.totalSessions,
     "avg_commits*": row.averageCommitsPerSession,
 
     /** Average changes per hour over the sessions */
@@ -161,165 +156,10 @@ export function printCriteriaTable(
   // exportCsv(tableRows, `criteriaTable_${repoName}.csv`);
 }
 
-function calculateMetricWeights(
-  rows: CriteriaRow[],
-  thresholds: MetricThresholds,
-  deadline: Date,
-  plannedHours: number,
-): MetricWeights {
-  const totalRepos = rows.length;
-
-  // Zähle wie viele Repos die Metrik erfüllen
-  const countFirstCommitOnDeadline = rows.filter((r) => r.firstCommitOnDeadline).length;
-  const countAreFewChanges = rows.filter((r) => r.areFewChanges).length;
-  const countAreFewChangesInTests = rows.filter((r) => r.areFewChangesInTests).length;
-  const countAreFewCommits = rows.filter((r) => r.totalCommits <= thresholds.totalCommits).length;
-  const countIsTooLateFirstCommit = rows.filter((r) =>
-    isTooLateFirstCommit(r.startDate, deadline, plannedHours)
-  ).length;
-  const countChangesPerHour = rows.filter((r) => r.avaregeChangesPerHourOverSessions >= thresholds.avgChangesPerHour).length;
-  const countIsBundled = rows.filter((r) => r.isBundled).length;
-
-  // Berechne Anteile (p_i)
-  const pFirstCommitOnDeadline = countFirstCommitOnDeadline / totalRepos;
-  const pAreFewChanges = countAreFewChanges / totalRepos;
-  const pAreFewChangesInTests = countAreFewChangesInTests / totalRepos;
-  const pAreFewCommits = countAreFewCommits / totalRepos;
-  const pIsTooLateFirstCommit = countIsTooLateFirstCommit / totalRepos;
-  const pChangesPerHour = countChangesPerHour / totalRepos;
-  const pIsBundled = countIsBundled / totalRepos;
-
-  // Berechne unormalisierte Gewichte: w = p(1-p)
-  const wFirstCommitOnDeadline = pFirstCommitOnDeadline * (1 - pFirstCommitOnDeadline);
-  const wAreFewChanges = pAreFewChanges * (1 - pAreFewChanges);
-  const wAreFewChangesInTests = pAreFewChangesInTests * (1 - pAreFewChangesInTests);
-  const wAreFewCommits = pAreFewCommits * (1 - pAreFewCommits);
-  const wIsTooLateFirstCommit = pIsTooLateFirstCommit * (1 - pIsTooLateFirstCommit);
-  const wChangesPerHour = pChangesPerHour * (1 - pChangesPerHour);
-  const wIsBundled = pIsBundled * (1 - pIsBundled);
-
-  // Summe aller Gewichte
-  const sumWeights =
-    wFirstCommitOnDeadline +
-    wAreFewChanges +
-    wAreFewChangesInTests +
-    wAreFewCommits +
-    wIsTooLateFirstCommit +
-    wChangesPerHour +
-    wIsBundled;
-
-  console.log(`\nwFirstCommitOnDeadline:  ${wFirstCommitOnDeadline.toFixed(4)}`);
-  console.log(`wAreFewChanges:          ${wAreFewChanges.toFixed(4)}`);
-  console.log(`wAreFewChangesInTests:   ${wAreFewChangesInTests.toFixed(4)}`);
-  console.log(`wAreFewCommits:          ${wAreFewCommits.toFixed(4)}`);
-  console.log(`wIsTooLateFirstCommit:   ${wIsTooLateFirstCommit.toFixed(4)}`);
-  console.log(`wChangesPerHour:         ${wChangesPerHour.toFixed(4)}`);
-  console.log(`wIsBundled:              ${wIsBundled.toFixed(4)}`);
-  console.log(`Summe:                   ${sumWeights.toFixed(4)}`);
-
-  const normalizedWeights = {
-    firstCommitOnDeadline: wFirstCommitOnDeadline / sumWeights,
-    areFewChanges: wAreFewChanges / sumWeights,
-    areFewChangesInTests: wAreFewChangesInTests / sumWeights,
-    areFewCommits: wAreFewCommits / sumWeights,
-    isTooLateFirstCommit: wIsTooLateFirstCommit / sumWeights,
-    changesPerHour: wChangesPerHour / sumWeights,
-    isBundled: wIsBundled / sumWeights
-  };
-
-  console.log("\n--- Normalisierte Gewichte ---");
-  console.log(`firstCommitOnDeadline:   ${normalizedWeights.firstCommitOnDeadline.toFixed(4)} (${(normalizedWeights.firstCommitOnDeadline * 100).toFixed(1)}%)`);
-  console.log(`areFewChanges:           ${normalizedWeights.areFewChanges.toFixed(4)} (${(normalizedWeights.areFewChanges * 100).toFixed(1)}%)`);
-  console.log(`areFewChangesInTests:    ${normalizedWeights.areFewChangesInTests.toFixed(4)} (${(normalizedWeights.areFewChangesInTests * 100).toFixed(1)}%)`);
-  console.log(`areFewCommits:           ${normalizedWeights.areFewCommits.toFixed(4)} (${(normalizedWeights.areFewCommits * 100).toFixed(1)}%)`);
-  console.log(`isTooLateFirstCommit:    ${normalizedWeights.isTooLateFirstCommit.toFixed(4)} (${(normalizedWeights.isTooLateFirstCommit * 100).toFixed(1)}%)`);
-  console.log(`changesPerHour:          ${normalizedWeights.changesPerHour.toFixed(4)} (${(normalizedWeights.changesPerHour * 100).toFixed(1)}%)`);
-  console.log(`isBundled:               ${normalizedWeights.isBundled.toFixed(4)} (${(normalizedWeights.isBundled * 100).toFixed(1)}%)`);
-  console.log("===================================\n");
-
-
-  // Konsolenausgabe zur Nachvollziehbarkeit
-  console.log("\n=== Metrik-Gewichtsberechnung ===");
-  console.log(`Gesamtanzahl Repos: ${totalRepos}`);
-  console.log("\n--- Schwellwerte ---");
-  console.log(`Commits:              ${thresholds.totalCommits}`);
-  console.log(`Total Changes: ${thresholds.totalChanges}`);
-  console.log(`Total Test Changes:   ${thresholds.totalTestChanges}`);
-  console.log(`Avg Changes/h:        ${thresholds.avgChangesPerHour.toFixed(2)}`);
-  console.log(`Bundling Threshold:   ${thresholds.bundling.toFixed(4)}`);
-  console.log("\n--- Anzahl auffälliger Repos pro Metrik ---");
-  console.log(`firstCommitOnDeadline:   ${countFirstCommitOnDeadline} von ${totalRepos} (${(pFirstCommitOnDeadline * 100).toFixed(1)}%)`);
-  console.log(`areFewChanges:           ${countAreFewChanges} von ${totalRepos} (${(pAreFewChanges * 100).toFixed(1)}%)`);
-  console.log(`areFewChangesInTests:    ${countAreFewChangesInTests} von ${totalRepos} (${(pAreFewChangesInTests * 100).toFixed(1)}%)`);
-  console.log(`areFewCommits (≤${thresholds.totalCommits}):     ${countAreFewCommits} von ${totalRepos} (${(pAreFewCommits * 100).toFixed(1)}%)`);
-  console.log(`isTooLateFirstCommit:    ${countIsTooLateFirstCommit} von ${totalRepos} (${(pIsTooLateFirstCommit * 100).toFixed(1)}%)`);
-  console.log(`changesPerHour (≥${thresholds.avgChangesPerHour.toFixed(2)}): ${countChangesPerHour} von ${totalRepos} (${(pChangesPerHour * 100).toFixed(1)}%)`);
-  console.log(`isBundled (commits≥${thresholds.totalCommits} && bundling≥${thresholds.bundling.toFixed(4)}): ${countIsBundled} von ${totalRepos} (${(pIsBundled * 100).toFixed(1)}%)`);
-
-  return normalizedWeights;
-}
-
-function calculateIndex(
-  row: CriteriaRow,
-  weights: MetricWeights,
-  thresholds: MetricThresholds,
-  deadline = new Date("2024-04-28T23:59:00"),
-  plannedHours = 6
-): number {
-  let index: number = 0;
-  if (row.firstCommitOnDeadline) index += weights.firstCommitOnDeadline;
-  if (row.areFewChanges) index += weights.areFewChanges;
-  if (row.areFewChangesInTests) index += weights.areFewChangesInTests;
-  if (row.areFewCommits) index += weights.areFewCommits;
-  if (isTooLateFirstCommit(row.startDate, deadline, plannedHours))
-    index += weights.isTooLateFirstCommit;
-  if (row.avaregeChangesPerHourOverSessions >= thresholds.avgChangesPerHour)
-    index += weights.changesPerHour;
-  if (row.isBundled)
-    index += weights.isBundled;
-  return Number(index.toFixed(2));
-}
-
-function subtractHours(d: Date, hours: number): Date {
-  return new Date(d.getTime() - hours * 60 * 60 * 1000);
-}
-
-function isTooLateFirstCommit(
-  firstCommitAt: Date,
-  deadline: Date,
-  plannedHours: number,
-): boolean {
-  /**
-   *  const cutoffTime = subtractHours(deadline, plannedHours);
-  const deadlineDay = getDayAndTimeFromDate(deadline).day;
-  const commitDay = getDayAndTimeFromDate(firstCommitAt).day;
-
-  // Nur relevant wenn am Deadline-Tag, sonst ist es zu spät/falsch
-  return commitDay === deadlineDay && firstCommitAt > cutoffTime;
-   */
-  return firstCommitAt > subtractHours(deadline, plannedHours);
-}
-
-function calculateAverageChangesPerHour(sessions: Session[]) {
-  let temp = 0;
-  let counter = 0;
-  for (const s of sessions) {
-    temp += s.changesPerHour ?? 0;
-    counter++;
-  }
-  return temp / counter;
-}
-
-function calculateAverageCommitsPerSession(sessions: Session[]) {
-  let temp = 0;
-  let counter = 0;
-  for (const s of sessions) {
-    temp += s.totalCommits;
-    counter++;
-  }
-  return Number((temp / counter).toFixed(1));
-}
-
+/**
+ * Prompt: Kannst du mir machen, dass alle Schwellenwerte in einer Methode berechnet werden
+ * Berechnet alle Schwellwerte für Metriken über alle Autoren/Repos hinweg
+ */
 export async function exportToExcel(
   data: ExcelExportData,
   filename: string,
@@ -369,7 +209,7 @@ function addCriteriaSheet(
     { header: "Deadline", key: "deadline", width: 20 },
     { header: "Sessions", key: "sessions", width: 12 },
     { header: "Avg Commits", key: "avg_commits", width: 15 },
-    { header: "Avg Changes/h", key: "avg_changes", width: 15 },
+    { header: "Avg Changes/h over session", key: "avg_changes", width: 15 },
     { header: "Index", key: "index", width: 10 },
   ];
 
@@ -384,7 +224,7 @@ function addCriteriaSheet(
 
   // Daten hinzufügen
   data.rows.forEach((row) => {
-    sheet.addRow({
+    const newRow = sheet.addRow({
       author: row.author,
       total_commits: row.totalCommits,
       mixed_commits: formatWithPercent(row.totalCommits, row.totalMixedCommits),
@@ -404,6 +244,58 @@ function addCriteriaSheet(
       avg_changes: row.avaregeChangesPerHourOverSessions,
       index: calculateIndex(row, weights, data.thresholds, data.deadline, data.plannedHours),
     });
+
+    /**
+     * Promt: wie kann ich so machen, dass bei export excel sheet manche sachen mit roter Farbe markiert werden? Also das würde ich für besseren Übersicht den Auffälligkeiten machen
+     */
+    // Rote Markierung für Auffälligkeiten
+    const redFill = {
+      type: "pattern" as const,
+      pattern: "solid" as const,
+      fgColor: { argb: "FFFF6B6B" },
+    };
+
+    // Zu wenige Commits
+    if (row.areFewCommits) {
+      newRow.getCell("total_commits").fill = redFill;
+    }
+
+    // Zu wenige Changes
+    if (row.areFewChanges) {
+      newRow.getCell("total_changes").fill = redFill;
+    }
+
+    // Zu wenige Test Changes
+    if (row.areFewChangesInTests) {
+      newRow.getCell("test_changes").fill = redFill;
+    }
+
+    // Hoher Bundling-Koeffizient (verdächtig)
+    if (row.isBundled) {
+      newRow.getCell("bundling").fill = redFill;
+    }
+
+    // Erster Commit am Deadline-Tag
+    if (row.firstCommitOnDeadline) {
+      newRow.getCell("start_date").fill = redFill;
+    }
+
+    // Zu später Start (innerhalb der letzten geplanten Stunden)
+    if (isTooLateFirstCommit(row.startDate, data.deadline, data.plannedHours)) {
+      newRow.getCell("start_date").fill = redFill;
+    }
+
+    // Zu hohe Changes pro Stunde
+    if (row.avaregeChangesPerHourOverSessions >= data.thresholds.avgChangesPerHour) {
+      newRow.getCell("avg_changes").fill = redFill;
+    }
+
+    // Hoher Index (mehrere Auffälligkeiten)
+    const indexValue = calculateIndex(row, weights, data.thresholds, data.deadline, data.plannedHours);
+    if (indexValue >= 0.5) { // Ab 50% kritisch
+      newRow.getCell("index").fill = redFill;
+      newRow.getCell("index").font = { bold: true };
+    }
   });
 
   // Autofilter

@@ -16,7 +16,7 @@ import {
 } from "./utils";
 
 async function main() {
-  const repoName = "sample1";
+  const repoName = "sample5";
 
   const cli = await askCliInput(repoName);
 
