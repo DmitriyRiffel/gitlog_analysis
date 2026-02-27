@@ -24,9 +24,9 @@ async function createCSV(repo: string): Promise<Commit[]> {
   const commitLines = (await readLines(repo + "/commits.csv")).slice(1);
 
   /** ToDo: Remove later on. Only for development */
-  const subdir = repo.split(/[\\/]+/);
-  const submission =
-    subdir.find((session) => session.startsWith("submission_")) ?? "";
+  // const subdir = repo.split(/[\\/]+/);
+  // const submission =
+  //   subdir.find((session) => session.startsWith("submission_")) ?? "";
 
   const parsed = commitLines
     .map(splitCommitLinePipe)
@@ -45,7 +45,8 @@ async function createCSV(repo: string): Promise<Commit[]> {
   ).sort((a, b) => a.localeCompare(b));
 
   const mergedAuthorName =
-    uniqueAuthors.join(" - ") + (submission ? ` ${submission}` : "");
+    uniqueAuthors.join(" - ")
+    // + (submission ? ` ${submission}` : "");
 
   return parsed.map((commit) => ({
     hash: commit.hash,

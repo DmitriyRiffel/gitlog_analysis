@@ -210,6 +210,33 @@ export function calculateIndex(
   return Number(index.toFixed(2));
 }
 
+export function calculateIndexSimple(
+  row: CriteriaRow,
+  manualWeights: MetricWeights,
+  thresholds: MetricThresholds,
+  deadline: Date,
+  plannedHours: number
+): number {
+  let index: number = 0;
+
+  if (row.firstCommitOnDeadline)
+    index += manualWeights.firstCommitOnDeadline;
+  if (row.areFewChanges)
+    index += manualWeights.areFewChanges;
+  if (row.areFewChangesInTests)
+    index += manualWeights.areFewChangesInTests;
+  if (row.areFewCommits)
+    index += manualWeights.areFewCommits;
+  if (isTooLateFirstCommit(row.startDate, deadline, plannedHours))
+    index += manualWeights.isTooLateFirstCommit;
+  if (row.avaregeChangesPerHourOverSessions >= thresholds.avgChangesPerHour)
+    index += manualWeights.changesPerHour;
+  if (row.isBundled)
+    index += manualWeights.isBundled;
+
+  return Math.min(1.0, Number(index.toFixed(2)));
+}
+
 function subtractHours(d: Date, hours: number): Date {
   return new Date(d.getTime() - hours * 60 * 60 * 1000);
 }

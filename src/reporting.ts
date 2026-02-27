@@ -1,4 +1,4 @@
-import { calculateAverageChangesPerHour, calculateAverageCommitsPerSession, calculateIndex, calculateMetricWeights, isTooLateFirstCommit } from "./calculations";
+import { calculateAverageChangesPerHour, calculateAverageCommitsPerSession, calculateIndex, calculateIndexSimple, calculateMetricWeights, isTooLateFirstCommit } from "./calculations";
 import {
   CommitWithDiff,
   CriteriaRow,
@@ -19,6 +19,16 @@ import {
   getDayAndTimeFromDate,
 } from "./utils";
 import ExcelJS from "exceljs";
+
+const myWeights: MetricWeights = {
+  firstCommitOnDeadline: 0,
+  areFewChanges: 0.15,
+  areFewChangesInTests: 0.1,
+  areFewCommits: 0.25,
+  isTooLateFirstCommit: 0.2,
+  changesPerHour: 0.25,
+  isBundled: 0.05
+};
 
 export function printCommitsTable(
   commits: CommitWithDiff[],
@@ -149,7 +159,8 @@ export function printCriteriaTable(
     /** Average changes per hour over the sessions */
     avg_changes: row.avaregeChangesPerHourOverSessions,
 
-    index: calculateIndex(row, weights, thresholds, deadline, plannedHours),
+    // index: calculateIndex(row, weights, thresholds, deadline, plannedHours),
+    index: calculateIndexSimple(row, myWeights, thresholds, deadline, plannedHours)
   }));
 
   console.table(tableRows);
@@ -177,9 +188,91 @@ export async function exportToExcel(
   // Alle Commits zusammengefasst in einem Sheet
   addAllCommitsSheet(workbook, "Alle Commits", data.commits);
 
+  // Zusätzliche Tabelle wie printCommitsTable-Ausgabe
+  addCommitsConsoleSheet(workbook, "Commits (Konsole)", data.commits);
+
   // Datei speichern
   await workbook.xlsx.writeFile(filename);
   console.log(`\n✓ Excel-Datei gespeichert: ${filename}`);
+}
+
+function addCommitsConsoleSheet(
+  workbook: ExcelJS.Workbook,
+  sheetName: string,
+  commitsByRepo: { repoName: string; data: CommitWithDiff[]; skipFirstCommit: boolean }[],
+): void {
+  const sheet = workbook.addWorksheet(sheetName);
+
+  sheet.columns = [
+    { header: "Repository", key: "repository", width: 25 },
+    { header: "Hash", key: "hash", width: 12 },
+    { header: "Autor", key: "author", width: 20 },
+    { header: "Subject", key: "subject", width: 40 },
+    { header: "Datum", key: "date", width: 20 },
+    { header: "Files", key: "files", width: 8 },
+    { header: "Source Ins", key: "source_ins", width: 12 },
+    { header: "Source Del", key: "source_del", width: 12 },
+    { header: "Source Total", key: "source_total", width: 12 },
+    { header: "Comment Ins", key: "comment_ins", width: 12 },
+    { header: "Comment Del", key: "comment_del", width: 12 },
+    { header: "Comment Total", key: "comment_total", width: 12 },
+    { header: "Tests Ins", key: "tests_ins", width: 12 },
+    { header: "Tests Del", key: "tests_del", width: 12 },
+    { header: "Tests Total", key: "tests_total", width: 12 },
+    { header: "Total", key: "total", width: 10 },
+    { header: "Type", key: "type", width: 12 },
+    { header: "Diff Hours", key: "diff_hours", width: 12 },
+    { header: "Diff Minutes", key: "diff_minutes", width: 12 },
+    { header: "Changes/h", key: "changes_hour", width: 12 },
+  ];
+
+  sheet.getRow(1).fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: { argb: "FF5B9BD5" },
+  };
+  sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
+
+  commitsByRepo.forEach((commitData, index) => {
+    commitData.data.forEach((c) => {
+      sheet.addRow({
+        repository: commitData.repoName,
+        hash: c.hash.slice(0, 10),
+        author: c.author,
+        subject: c.subject,
+        date: c.day + " " + c.time,
+        files: c.filesChanged,
+        source_ins: c.sourceInsertions,
+        source_del: c.sourceDeletions,
+        source_total: c.totalSourceChanges,
+        comment_ins: c.commentInsertions,
+        comment_del: c.commentDeletions,
+        comment_total: c.totalCommentChanges,
+        tests_ins: c.testInsertions,
+        tests_del: c.testDeletions,
+        tests_total: c.totalTestChanges,
+        total: c.totalChanges,
+        type: CommitType[c.commitType],
+        diff_hours: Number(c.diffHours.toFixed(3)),
+        diff_minutes: Number(c.diffMinutes.toFixed(3)),
+        changes_hour: Number(c.changesPerHour.toFixed(2)),
+      });
+    });
+
+    const filteredCommits = commitData.skipFirstCommit ? commitData.data.slice(1) : commitData.data;
+    const bundling = calculateCommitBundling(filteredCommits);
+    sheet.addRow({});
+    sheet.addRow({ repository: `Bundling (${commitData.repoName}):`, author: bundling });
+
+    if (index < commitsByRepo.length - 1) {
+      sheet.addRow({});
+    }
+  });
+
+  sheet.autoFilter = {
+    from: { row: 1, column: 1 },
+    to: { row: 1, column: 20 },
+  };
 }
 
 function addCriteriaSheet(
@@ -209,7 +302,7 @@ function addCriteriaSheet(
     { header: "Deadline", key: "deadline", width: 20 },
     { header: "Sessions", key: "sessions", width: 12 },
     { header: "Avg Commits", key: "avg_commits", width: 15 },
-    { header: "Avg Changes/h over session", key: "avg_changes", width: 15 },
+    { header: "Avg Changes/h", key: "avg_changes", width: 15 },
     { header: "Index", key: "index", width: 10 },
   ];
 
@@ -242,7 +335,8 @@ function addCriteriaSheet(
       sessions: row.totalSessions,
       avg_commits: row.averageCommitsPerSession,
       avg_changes: row.avaregeChangesPerHourOverSessions,
-      index: calculateIndex(row, weights, data.thresholds, data.deadline, data.plannedHours),
+      // index: calculateIndex(row, weights, data.thresholds, data.deadline, data.plannedHours),
+      index: calculateIndexSimple(row, myWeights, data.thresholds, data.deadline, data.plannedHours)
     });
 
     /**
@@ -291,8 +385,8 @@ function addCriteriaSheet(
     }
 
     // Hoher Index (mehrere Auffälligkeiten)
-    const indexValue = calculateIndex(row, weights, data.thresholds, data.deadline, data.plannedHours);
-    if (indexValue >= 0.5) { // Ab 50% kritisch
+    const indexValue = calculateIndexSimple(row, myWeights, data.thresholds, data.deadline, data.plannedHours);
+    if (indexValue >= 0.6) {
       newRow.getCell("index").fill = redFill;
       newRow.getCell("index").font = { bold: true };
     }
