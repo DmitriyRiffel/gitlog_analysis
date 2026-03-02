@@ -1,4 +1,9 @@
-import { calculateAverageChangesPerHour, calculateAverageCommitsPerSession, calculateIndex, isTooLateFirstCommit } from "./calculations";
+import {
+  calculateAverageChangesPerHour,
+  calculateAverageCommitsPerSession,
+  calculateIndex,
+  isTooLateFirstCommit,
+} from "./calculations";
 import {
   CommitWithDiff,
   CriteriaRow,
@@ -13,6 +18,7 @@ import {
   calculateCommitBundling,
   calculatePercent,
   earlierDate,
+  exportCsv,
   getDayAndTimeFromDate,
 } from "./utils";
 import ExcelJS from "exceljs";
@@ -78,7 +84,7 @@ export function buildCriteriaRows(
       areFewCommits: a.totalCommits <= thresholds.totalCommits,
       areFewChanges: a.totalChanges <= thresholds.totalChanges,
       areFewChangesInTests: a.totalTestChanges <= thresholds.totalTestChanges,
-      areFewMixedCommits: (a.totalMixedCommits / a.totalCommits) <= 0.5,
+      areFewMixedCommits: a.totalMixedCommits / a.totalCommits <= 0.5,
 
       startDate: startDate,
       endDate: a.lastCommitDate,
@@ -97,7 +103,9 @@ export function buildCriteriaRows(
       firstCommitOnDeadline:
         getDayAndTimeFromDate(startDate).day ===
         getDayAndTimeFromDate(deadline).day,
-      isBundled: a.totalCommits >= thresholds.totalCommits && a.bundling_coeff >= thresholds.bundling,
+      isBundled:
+        a.totalCommits >= thresholds.totalCommits &&
+        a.bundling_coeff >= thresholds.bundling,
       avaregeChangesPerHourOverSessions: a.avaregeChangesPerHourOverSessions,
     };
   });
@@ -126,7 +134,10 @@ export function printCriteriaTable(
       row.totalCommentCommits,
     ),
     total_changes: formatWithPercent(row.totalChanges, row.totalChanges),
-    "source_changes*": formatWithPercent(row.totalChanges, row.totalSourceChanges),
+    "source_changes*": formatWithPercent(
+      row.totalChanges,
+      row.totalSourceChanges,
+    ),
     "comment_changes*": formatWithPercent(
       row.totalChanges,
       row.totalCommentChanges,
@@ -155,12 +166,11 @@ export function printCriteriaTable(
     /** Average changes per hour over the sessions */
     avg_changes: row.avaregeChangesPerHourOverSessions,
 
-    // index: calculateIndex(row, weights, thresholds, deadline, plannedHours),
-    index: calculateIndex(row, myWeights, thresholds, deadline, plannedHours)
+    index: calculateIndex(row, myWeights, thresholds, deadline, plannedHours),
   }));
 
   console.table(tableRows);
-  // exportCsv(tableRows, `criteriaTable_${repoName}.csv`);
+  exportCsv(tableRows, `criteriaTable_${repoName}.csv`);
 }
 
 /**
@@ -207,11 +217,14 @@ export async function exportRepoCommitsTableToExcel(
   console.log(`✓ Repo-Commits-Datei gespeichert: ${filename}`);
 }
 
-
-
 function addCriteriaSheet(
   workbook: ExcelJS.Workbook,
-  data: { rows: CriteriaRow[]; deadline: Date; plannedHours: number; thresholds: MetricThresholds },
+  data: {
+    rows: CriteriaRow[];
+    deadline: Date;
+    plannedHours: number;
+    thresholds: MetricThresholds;
+  },
 ): void {
   const sheet = workbook.addWorksheet("Kriterien-Übersicht");
 
@@ -252,22 +265,49 @@ function addCriteriaSheet(
       author: row.author,
       total_commits: row.totalCommits,
       mixed_commits: formatWithPercent(row.totalCommits, row.totalMixedCommits),
-      source_commits: formatWithPercent(row.totalCommits, row.totalSourceCommits),
+      source_commits: formatWithPercent(
+        row.totalCommits,
+        row.totalSourceCommits,
+      ),
       test_commits: formatWithPercent(row.totalCommits, row.totalTestCommits),
-      comment_commits: formatWithPercent(row.totalCommits, row.totalCommentCommits),
+      comment_commits: formatWithPercent(
+        row.totalCommits,
+        row.totalCommentCommits,
+      ),
       total_changes: formatWithPercent(row.totalChanges, row.totalChanges),
-      source_changes: formatWithPercent(row.totalChanges, row.totalSourceChanges),
-      comment_changes: formatWithPercent(row.totalChanges, row.totalCommentChanges),
+      source_changes: formatWithPercent(
+        row.totalChanges,
+        row.totalSourceChanges,
+      ),
+      comment_changes: formatWithPercent(
+        row.totalChanges,
+        row.totalCommentChanges,
+      ),
       test_changes: formatWithPercent(row.totalChanges, row.totalTestChanges),
       bundling: row.bundling_coeff,
-      start_date: getDayAndTimeFromDate(row.startDate).day + " " + getDayAndTimeFromDate(row.startDate).time,
-      end_date: getDayAndTimeFromDate(row.endDate).day + " " + getDayAndTimeFromDate(row.endDate).time,
-      deadline: getDayAndTimeFromDate(data.deadline).day + " " + getDayAndTimeFromDate(data.deadline).time,
+      start_date:
+        getDayAndTimeFromDate(row.startDate).day +
+        " " +
+        getDayAndTimeFromDate(row.startDate).time,
+      end_date:
+        getDayAndTimeFromDate(row.endDate).day +
+        " " +
+        getDayAndTimeFromDate(row.endDate).time,
+      deadline:
+        getDayAndTimeFromDate(data.deadline).day +
+        " " +
+        getDayAndTimeFromDate(data.deadline).time,
       sessions: row.totalSessions,
       avg_commits: row.averageCommitsPerSession,
       avg_changes: row.avaregeChangesPerHourOverSessions,
       // index: calculateIndex(row, weights, data.thresholds, data.deadline, data.plannedHours),
-      index: calculateIndex(row, myWeights, data.thresholds, data.deadline, data.plannedHours)
+      index: calculateIndex(
+        row,
+        myWeights,
+        data.thresholds,
+        data.deadline,
+        data.plannedHours,
+      ),
     });
 
     /**
@@ -311,16 +351,24 @@ function addCriteriaSheet(
     }
 
     // Zu hohe Changes pro Stunde
-    if (row.avaregeChangesPerHourOverSessions >= data.thresholds.avgChangesPerHour) {
+    if (
+      row.avaregeChangesPerHourOverSessions >= data.thresholds.avgChangesPerHour
+    ) {
       newRow.getCell("avg_changes").fill = redFill;
     }
 
-    if(row.totalMixedCommits / row.totalCommits <= 0.5){
+    if (row.totalMixedCommits / row.totalCommits <= 0.5) {
       newRow.getCell("mixed_commits").fill = redFill;
     }
 
     // Hoher Index (mehrere Auffälligkeiten)
-    const indexValue = calculateIndex(row, myWeights, data.thresholds, data.deadline, data.plannedHours);
+    const indexValue = calculateIndex(
+      row,
+      myWeights,
+      data.thresholds,
+      data.deadline,
+      data.plannedHours,
+    );
     if (indexValue > 0.5) {
       newRow.getCell("index").fill = redFill;
       newRow.getCell("index").font = { bold: true };
@@ -391,7 +439,11 @@ function addAllSessionsSheet(
 function addAllCommitsSheet(
   workbook: ExcelJS.Workbook,
   sheetName: string,
-  commitsByRepo: { repoName: string; data: CommitWithDiff[]; skipFirstCommit: boolean }[],
+  commitsByRepo: {
+    repoName: string;
+    data: CommitWithDiff[];
+    skipFirstCommit: boolean;
+  }[],
 ): void {
   const sheet = workbook.addWorksheet(sheetName);
 
@@ -471,4 +523,4 @@ function addAllCommitsSheet(
 
 /** Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
  * ----------------------
-*/
+ */

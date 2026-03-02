@@ -46,11 +46,7 @@ export async function findGitRepos(rootDir: string): Promise<string[]> {
   return repos;
 }
 
-/**
- * Reads a text file and returns a cleaned list of non-empty lines.
- * - Splits by LF/CRLF
- * - Trims whitespace
- * - Drops empty lines
+/** Anfangsprompt: Wie könnte man eine Textdatei einlesen, in einzelne Zeilen aufteilen, Leerzeichen bereinigen und leere Zeilen entfernen
  */
 export async function readLines(filePath: string): Promise<string[]> {
   return fs
@@ -71,19 +67,6 @@ export function getDayAndTimeFromDate(date: Date): {
 
 export function shouldIgnoreFile(file: string): boolean {
   if (file.endsWith(".json")) return true;
-  // if (
-  //   file.includes("/tests/") ||
-  //   file.includes("/test/") ||
-  //   file.includes("/__tests__/")
-  // )
-  //   return true;
-  // if (
-  //   file.endsWith(".spec.ts") ||
-  //   file.endsWith(".spec.js")
-  //   // file.endsWith(".test.ts") ||
-  //   // file.endsWith(".test.js")
-  // )
-  //   return true;
   if (file.endsWith(".yml")) return true;
 
   return false;
@@ -114,6 +97,7 @@ export function mergeAuthorMaps(
   }
 }
 
+/** Bereitsgestellt von Prof. Dr. Jens von Pilgrim */
 const CLONE_DATE_REGEX = /HEAD@\{(\d{2})\.(\d{2})\.(\d{2})\. (\d{2}):(\d{2})\}/;
 
 export function extractAndFormatCloneDate(
@@ -134,24 +118,6 @@ export function extractAndFormatCloneDate(
   );
 
   return Number.isNaN(date.getTime()) ? undefined : date;
-}
-
-function formatDateWithTimezone(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-
-  const year = date.getFullYear();
-  const month = pad(date.getMonth() + 1);
-  const day = pad(date.getDate());
-  const hour = pad(date.getHours());
-  const minute = pad(date.getMinutes());
-  const second = pad(date.getSeconds());
-
-  const offsetMin = -date.getTimezoneOffset();
-  const sign = offsetMin >= 0 ? "+" : "-";
-  const offsetH = pad(Math.floor(Math.abs(offsetMin) / 60));
-  const offsetM = pad(Math.abs(offsetMin) % 60);
-
-  return `${year}-${month}-${day} ${hour}:${minute}:${second} ${sign}${offsetH}${offsetM}`;
 }
 
 export async function getCloneDate(repoDir: string): Promise<Date | undefined> {
@@ -282,25 +248,22 @@ export function calculateCommitBundling(commits: CommitWithDiff[]) {
 
   const bundling = maxCommit / totalChanges;
 
-  // return {
-  //   bundling,
-  //   category:
-  //     bundling >= 0.75 ? "hoch" : bundling >= 0.4 ? "mittel" : "niedrig",
-  // };
-
   return Number((Math.round(bundling * 100) / 100).toFixed(2));
 }
 
-export function calculateAvaregeChangesPerHourOverSessions(sessions: Session[], skipFirstCommit: boolean){
+export function calculateAvaregeChangesPerHourOverSessions(
+  sessions: Session[],
+  skipFirstCommit: boolean,
+) {
   let amountOfSessions = 0;
   let changes = 0;
-  if(skipFirstCommit){
-    for(let s = 1; s < sessions.length; s++){
+  if (skipFirstCommit) {
+    for (let s = 1; s < sessions.length; s++) {
       amountOfSessions += 1;
       changes += sessions[s].changesPerHour;
     }
-  }else {
-    for(let s = 0; s < sessions.length; s++){
+  } else {
+    for (let s = 0; s < sessions.length; s++) {
       amountOfSessions += 1;
       changes += sessions[s].changesPerHour;
     }

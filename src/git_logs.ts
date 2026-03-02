@@ -12,14 +12,17 @@ function isCommentOnly(line: string): boolean {
   );
 }
 
+/** Anfangsprompt: Wie könnte man aus einer Codezeile Inline-Kommentare entfernen? */
 function stripInlineComment(line: string): string {
   return line.replace(/\/\/.*$/, "");
 }
 
+/** Anfangsprompt: Wie könnte man Block-Kommentare aus einer einzelnen Codezeile herausfiltern? */
 function stripBlockComments(line: string): string {
   return line.replace(/\/\*.*?\*\//g, "");
 }
 
+/** Anfangsprompt: Wie könnte man eine Codezeile normalisieren, indem Kommentare entfernt und unnötige Leerzeichen vereinheitlicht werden? */
 function normalizeCode(line: string): string {
   let s = stripBlockComments(stripInlineComment(line));
   s = s.trim().replace(/\s+/g, " ");
@@ -28,13 +31,15 @@ function normalizeCode(line: string): string {
 
   return s;
 }
+
+/** Anfangsprompt: Wie könnte man prüfen, ob eine Codezeile einen Inline-Kommentar enthält? */
 function hasInlineLineComment(line: string): boolean {
   return /\/\/.*$/.test(line);
 }
 
 function isOnlyInlineCommentChange(
   removedLine: string,
-  addedLine: string
+  addedLine: string,
 ): boolean {
   const oldCode = normalizeCode(removedLine);
   const newCode = normalizeCode(addedLine);

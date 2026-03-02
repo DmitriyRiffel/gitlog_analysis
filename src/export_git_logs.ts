@@ -9,19 +9,20 @@ import { existsDir, extractAndFormatCloneDate } from "./utils";
 async function getFileDiff(
   repoDir: string,
   hash: string,
-  file: string
+  file: string,
 ): Promise<string> {
   const res = await runGit(
     ["show", hash, "--unified=0", "--ignore-all-space", "--", file],
-    repoDir
+    repoDir,
   );
   if (res.code !== 0) return "";
   return res.stdout;
 }
 
+/**Prompt: Wie könnte man in TypeScript einen Git-Befehl aus einem bestimmten Verzeichnis heraus ausführen und das Ergebnis der Ausführung zurückbekommen? */
 export function runGit(
   args: string[],
-  cwd: string
+  cwd: string,
 ): Promise<{ stdout: string; stderr: string; code: number }> {
   return new Promise((resolve, reject) => {
     const child = spawn("git", args, { cwd, shell: false });
@@ -37,18 +38,18 @@ export function runGit(
   });
 }
 
+/**Anfangsprompt: Wie könnte man aus einem Gitordner die Git-Logs extrahieren */
 export async function getGitLogs(repoDir: string): Promise<boolean> {
   if (!(await existsDir(path.join(repoDir, ".git")))) {
     console.warn(`Kein .git-Ordner in: ${repoDir}`);
     return false;
   }
 
-  // await runGit(["reset", "--hard"], repoDir);
-
+  await runGit(["reset", "--hard"], repoDir);
 
   const log = await runGit(
     ["log", "--pretty=format:%H|%an|%ae|%ai|%s", "--date=iso"],
-    repoDir
+    repoDir,
   );
   if (log.code !== 0) {
     console.warn(`git log failed in ${repoDir}\n${log.stderr}`);
@@ -62,7 +63,7 @@ export async function getGitLogs(repoDir: string): Promise<boolean> {
 
   const numstats = await runGit(
     ["log", "--pretty=format:COMMIT:%H", "--numstat", "-p", "--no-color"],
-    repoDir
+    repoDir,
   );
 
   if (numstats.code !== 0) {
@@ -84,14 +85,16 @@ export async function getGitLogs(repoDir: string): Promise<boolean> {
     const diff = await getFileDiff(repoDir, hash, file);
     const countedChanges = countCodeChanges(diff);
     rows.push(
-      `${hash}|${file}|${countedChanges.sourceInsertions}|${countedChanges.sourceDeletions}|${countedChanges.commentInsertions}|${countedChanges.commentDeletions}`
+      `${hash}|${file}|${countedChanges.sourceInsertions}|${countedChanges.sourceDeletions}|${countedChanges.commentInsertions}|${countedChanges.commentDeletions}`,
     );
   }
 
   const cleanPath = path.join(repoDir, "commits_with_stats.csv");
   await fs.writeFile(cleanPath, rows.join("\n"), { encoding: "utf8" });
 
-  console.log(`Fertig: commits.csv, commits_with_stats.csv in: ${repoDir} erstellt.`);
+  console.log(
+    `Fertig: commits.csv, commits_with_stats.csv in: ${repoDir} erstellt.`,
+  );
   return true;
 }
 

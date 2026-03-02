@@ -1,6 +1,0 @@
-Mögliche Anomalien, aus denen dann später ein Index gebaut wird:
-- Wenn ein Student an dem gleichen Tag der Abgabefrist ersten commit macht
-- Wenn ein Student durchschnittlich viel weniger commits hat, als die anderen (z.B. wenn alle durchschnittlich 7-10 commits gemacht haben und er nur 2)
-- Wenn ein Student sehr kleine Intervalle zwischen den commits hat, aber hingegend viel Änderugnen
-- Wenn ein Student viel Zeitüberlappungen mit einem anderen hat (z.B. einer hat ein commit um 10:24 und den anderer um 10:26) ---> nicht nur einmal
-- Wenn die Namen von commits von verschiedenen Studenten identisch sind ???

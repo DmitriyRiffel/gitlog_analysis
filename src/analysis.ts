@@ -19,6 +19,7 @@ import {
   shouldIgnoreFile,
 } from "./utils";
 
+/** Anfangsprompt: Wie könnte man Commit-Daten aus einer CSV-Datei bereinigen, filtern und konsolidieren, bevor man sie strukturiert weiterverwendet? */
 async function createCSV(repo: string): Promise<Commit[]> {
   /** Read commit metadata lines and skip CSV header row */
   const commitLines = (await readLines(repo + "/commits.csv")).slice(1);
