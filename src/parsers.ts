@@ -1,5 +1,11 @@
+/**
+ * Quellen:
+ * - Git pretty formats (z. B. %H, %an, %ae, %ad, %s): https://git-scm.com/docs/git-log#_pretty_formats
+ * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split
+ * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/trim
+ */
 export function splitCommitLinePipe(
-  line: string
+  line: string,
 ): [string, string, string, string, string] {
   const parts = line.split("|");
   const hash = (parts[0] ?? "").trim();
@@ -10,6 +16,12 @@ export function splitCommitLinePipe(
   return [hash, author, email, date, subject];
 }
 
+/**
+ * Quellen:
+ * - Git diff --numstat (maschinenlesbares Format): https://git-scm.com/docs/git-diff#_other_diff_formats
+ * - 40-stellige Commit-Hashes / Revisionssyntax: https://git-scm.com/docs/git-rev-parse#_specifying_revisions
+ * - Number-Konvertierung in JavaScript: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number
+ */
 export function parseFileStatLine(line: string): {
   hash: string;
   file: string;
@@ -54,6 +66,11 @@ export function parseFileStatLine(line: string): {
   };
 }
 
+/**
+ * Quellen:
+ * - Git --numstat Ausgabe (added TAB deleted TAB path): https://git-scm.com/docs/git-diff#_other_diff_formats
+ * - JavaScript split() mit Tab-Trennern: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split
+ */
 export function parseNumstat(text: string): { hash: string; file: string }[] {
   const commitFiles: { hash: string; file: string }[] = [];
   let currentHash: string | null = null;

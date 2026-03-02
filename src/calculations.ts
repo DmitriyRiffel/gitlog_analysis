@@ -1,4 +1,10 @@
-import { AuthorAggregation, CriteriaRow, MetricThresholds, MetricWeights, Session } from "./types";
+import {
+  AuthorAggregation,
+  CriteriaRow,
+  MetricThresholds,
+  MetricWeights,
+  Session,
+} from "./types";
 
 function calculateMedian(values: number[]) {
   const sorted = [...values].sort((a, b) => a - b);
@@ -25,7 +31,9 @@ export function calculateLowerMadThreshold(
   const median = calculateMedian(values);
   const mad = calculateMad(values);
   const threshold = Math.max(0, median - k * mad);
-  console.log(`Lower Threshold: median=${median} - ${k}*mad(${mad.toFixed(2)}) = ${(median - k * mad).toFixed(2)} → ${threshold.toFixed(2)}`);
+  console.log(
+    `Lower Threshold: median=${median} - ${k}*mad(${mad.toFixed(2)}) = ${(median - k * mad).toFixed(2)} → ${threshold.toFixed(2)}`,
+  );
   return threshold;
 }
 
@@ -51,7 +59,10 @@ export function calculateMetricThresholds(
 
   // Total Changes (untere Grenze)
   const authorTotalChanges = authorsArray.map((a) => a.totalChanges);
-  const thresholdTotalChanges = calculateLowerMadThreshold(authorTotalChanges, k);
+  const thresholdTotalChanges = calculateLowerMadThreshold(
+    authorTotalChanges,
+    k,
+  );
 
   // Total Test Changes (untere Grenze)
   const authorTotalChangesInTests = authorsArray.map((a) => a.totalTestChanges);
@@ -73,15 +84,22 @@ export function calculateMetricThresholds(
   const authorsBundlingWithEnoughCommits = authorsArray
     .filter((a) => a.totalCommits >= commitThreshold)
     .map((a) => a.bundling_coeff);
-  const thresholdBundling = authorsBundlingWithEnoughCommits.length > 0
-    ? calculateUpperMadThreshold(authorsBundlingWithEnoughCommits, k)
-    : 0.5;
+  const thresholdBundling =
+    authorsBundlingWithEnoughCommits.length > 0
+      ? calculateUpperMadThreshold(authorsBundlingWithEnoughCommits, k)
+      : 0.5;
 
   console.log("\n=== Berechnung der Schwellwerte ===");
   console.log(`totalChanges Schwellwert: ${thresholdTotalChanges.toFixed(2)}`);
-  console.log(`totalTestChanges Schwellwert:   ${thresholdTotalChangesInTests.toFixed(2)}`);
-  console.log(`avgChangesPerHour Schwellwert:  ${thresholdAvgChangesPerHour.toFixed(2)}`);
-  console.log(`bundling Schwellwert:            ${thresholdBundling.toFixed(4)}`);
+  console.log(
+    `totalTestChanges Schwellwert:   ${thresholdTotalChangesInTests.toFixed(2)}`,
+  );
+  console.log(
+    `avgChangesPerHour Schwellwert:  ${thresholdAvgChangesPerHour.toFixed(2)}`,
+  );
+  console.log(
+    `bundling Schwellwert:            ${thresholdBundling.toFixed(4)}`,
+  );
 
   return {
     totalCommits: commitThreshold,
@@ -97,26 +115,20 @@ export function calculateIndex(
   manualWeights: MetricWeights,
   thresholds: MetricThresholds,
   deadline: Date,
-  plannedHours: number
+  plannedHours: number,
 ): number {
   let index: number = 0;
 
-  if (row.firstCommitOnDeadline)
-    index += manualWeights.firstCommitOnDeadline;
-  if (row.areFewChanges)
-    index += manualWeights.areFewChanges;
-  if (row.areFewChangesInTests)
-    index += manualWeights.areFewChangesInTests;
-  if (row.areFewCommits)
-    index += manualWeights.areFewCommits;
+  if (row.firstCommitOnDeadline) index += manualWeights.firstCommitOnDeadline;
+  if (row.areFewChanges) index += manualWeights.areFewChanges;
+  if (row.areFewChangesInTests) index += manualWeights.areFewChangesInTests;
+  if (row.areFewCommits) index += manualWeights.areFewCommits;
   if (isTooLateFirstCommit(row.startDate, deadline, plannedHours))
     index += manualWeights.isTooLateFirstCommit;
   if (row.avaregeChangesPerHourOverSessions >= thresholds.avgChangesPerHour)
     index += manualWeights.changesPerHour;
-  if (row.isBundled)
-    index += manualWeights.isBundled;
-  if (row.areFewMixedCommits)
-    index += manualWeights.areFewMixedCommits;
+  if (row.isBundled) index += manualWeights.isBundled;
+  if (row.areFewMixedCommits) index += manualWeights.areFewMixedCommits;
 
   return Math.min(1.0, Number(index.toFixed(2)));
 }
@@ -130,14 +142,6 @@ export function isTooLateFirstCommit(
   deadline: Date,
   plannedHours: number,
 ): boolean {
-  /**
-   *  const cutoffTime = subtractHours(deadline, plannedHours);
-  const deadlineDay = getDayAndTimeFromDate(deadline).day;
-  const commitDay = getDayAndTimeFromDate(firstCommitAt).day;
-
-  // Nur relevant wenn am Deadline-Tag, sonst ist es zu spät/falsch
-  return commitDay === deadlineDay && firstCommitAt > cutoffTime;
-   */
   return firstCommitAt > subtractHours(deadline, plannedHours);
 }
 
@@ -163,4 +167,4 @@ export function calculateAverageCommitsPerSession(sessions: Session[]) {
 
 /** Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
  * ----------------------
-*/
+ */

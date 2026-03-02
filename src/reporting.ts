@@ -7,15 +7,12 @@ import {
   CommitType,
   MetricWeights,
   MetricThresholds,
-  CliInput,
   ExcelExportData,
 } from "./types";
 import {
   calculateCommitBundling,
-  calculateAvaregeChangesPerHourOverSessions,
   calculatePercent,
   earlierDate,
-  exportCsv,
   getDayAndTimeFromDate,
 } from "./utils";
 import ExcelJS from "exceljs";

@@ -23,11 +23,6 @@ async function createCSV(repo: string): Promise<Commit[]> {
   /** Read commit metadata lines and skip CSV header row */
   const commitLines = (await readLines(repo + "/commits.csv")).slice(1);
 
-  /** ToDo: Remove later on. Only for development */
-  // const subdir = repo.split(/[\\/]+/);
-  // const submission =
-  //   subdir.find((session) => session.startsWith("submission_")) ?? "";
-
   const parsed = commitLines
     .map(splitCommitLinePipe)
     .filter((p) => p[1] !== "Jens von Pilgrim")
@@ -44,9 +39,7 @@ async function createCSV(repo: string): Promise<Commit[]> {
     new Set(parsed.map((commit) => commit.rawAuthor).filter(Boolean)),
   ).sort((a, b) => a.localeCompare(b));
 
-  const mergedAuthorName =
-    uniqueAuthors.join(" - ")
-    // + (submission ? ` ${submission}` : "");
+  const mergedAuthorName = uniqueAuthors.join(" - ");
 
   return parsed.map((commit) => ({
     hash: commit.hash,
@@ -314,10 +307,11 @@ function aggregateAuthors(
 
   // Berechne avaregeChangesPerHourOverSessions für jeden Author
   for (const author of map.values()) {
-    author.avaregeChangesPerHourOverSessions = calculateAvaregeChangesPerHourOverSessions(
-      author.sessions,
-      skipFirstCommit
-    );
+    author.avaregeChangesPerHourOverSessions =
+      calculateAvaregeChangesPerHourOverSessions(
+        author.sessions,
+        skipFirstCommit,
+      );
   }
 
   return map;

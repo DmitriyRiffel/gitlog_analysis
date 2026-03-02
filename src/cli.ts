@@ -7,10 +7,10 @@ export async function askCliInput(repoName: string): Promise<CliInput> {
 
   /** Only for Development */
   // For windows:
-  // const DEFAULT_REPO: string = `F:/Hochschule/BA/${repoName}`;
+  const DEFAULT_REPO: string = `F:/Hochschule/BA/${repoName}`;
 
   // For mac:
-  const DEFAULT_REPO: string = `/Volumes/ExterneSSD/Bachelor/${repoName}`;
+  // const DEFAULT_REPO: string = `/Volumes/ExterneSSD/Bachelor/${repoName}`;
 
   let DEFAULT_DEADLINE: string;
   switch (DEFAULT_REPO) {
@@ -65,11 +65,11 @@ export async function askCliInput(repoName: string): Promise<CliInput> {
       (await rl.question(`Deadline (YYYY-MM-DD): `)).trim() || DEFAULT_DEADLINE;
 
     const commitThresholdStr =
-    (
-      await rl.question(
-        `Untere Grenze der Commitsanzahl (Default = ${DEFAULT_COMMIT_THRESHOLD}): `,
-      )
-    ).trim() || DEFAULT_COMMIT_THRESHOLD;
+      (
+        await rl.question(
+          `Untere Grenze der Commitsanzahl (Default = ${DEFAULT_COMMIT_THRESHOLD}): `,
+        )
+      ).trim() || DEFAULT_COMMIT_THRESHOLD;
 
     const changesThresholdMultiplierStr =
       (

@@ -17,7 +17,7 @@ import {
 } from "./utils";
 
 async function main() {
-  const repoName = "sample5";
+  const repoName = "sample4";
 
   const cli = await askCliInput(repoName);
 
@@ -33,7 +33,6 @@ async function main() {
   console.log("Geschätzte Aufwand in Stunden: ", cli.estimatedEffort);
   // await exportGitLogs(repoDirs);
 
-  const totalCommitssPerRepo: number[] = [];
   const students = new Map<string, AuthorAggregation>();
 
   // Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
@@ -45,7 +44,13 @@ async function main() {
       rows: [],
       deadline: cli.deadline,
       plannedHours: cli.estimatedEffort,
-      thresholds: { totalCommits: 0, totalChanges: 0, totalTestChanges: 0, avgChangesPerHour: 0, bundling: 0 } // wird später gesetzt
+      thresholds: {
+        totalCommits: 0,
+        totalChanges: 0,
+        totalTestChanges: 0,
+        avgChangesPerHour: 0,
+        bundling: 0,
+      },
     },
   };
 
@@ -66,7 +71,6 @@ async function main() {
       commitsWithDiff.length,
     );
     console.log("nontestCommitLength : ", nonTesttotalCommits);
-    totalCommitssPerRepo.push(nonTesttotalCommits);
     mergeAuthorMaps(students, authors);
     printCommitsTable(commitsWithDiff, cli.skipFirstCommit);
     await exportRepoCommitsTableToExcel(
@@ -75,7 +79,10 @@ async function main() {
       cli.skipFirstCommit,
       `${repo}/commits_table.xlsx`,
     );
-    console.log("Durschnittliche Anzahl von Änderungen pro Stunde", calculateAvaregeChangesPerHourOverSessions(sessions, cli.skipFirstCommit));
+    console.log(
+      "Durschnittliche Anzahl von Änderungen pro Stunde",
+      calculateAvaregeChangesPerHourOverSessions(sessions, cli.skipFirstCommit),
+    );
     console.table(
       sessions.map((s) => ({
         author: s.author,
@@ -99,12 +106,14 @@ async function main() {
       repoName: repoDisplayName,
       data: sessions,
     });
-
-    idx++;
   }
 
   // Berechne alle Schwellwerte gebündelt
-  const thresholds = calculateMetricThresholds(students, cli.commitThreshold, 1);
+  const thresholds = calculateMetricThresholds(
+    students,
+    cli.commitThreshold,
+    1,
+  );
 
   const criteriaRows = buildCriteriaRows(
     students,
@@ -119,7 +128,13 @@ async function main() {
   console.log("Total Test Changes:", thresholds.totalTestChanges);
   console.log("Avg Changes/h:", thresholds.avgChangesPerHour.toFixed(2));
 
-  printCriteriaTable(criteriaRows, thresholds, cli.deadline, cli.estimatedEffort, repoName);
+  printCriteriaTable(
+    criteriaRows,
+    thresholds,
+    cli.deadline,
+    cli.estimatedEffort,
+    repoName,
+  );
 
   // Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
   // Criteria-Daten für Excel setzen
