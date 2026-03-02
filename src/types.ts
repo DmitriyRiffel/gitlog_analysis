@@ -95,6 +95,7 @@ export type CriteriaRow = {
   areFewCommits: boolean;
   areFewChanges: boolean;
   areFewChangesInTests: boolean;
+  areFewMixedCommits: boolean;
   startDate: Date;
   endDate: Date;
   totalSourceChanges: number;
@@ -139,6 +140,7 @@ export type MetricWeights = {
   isTooLateFirstCommit: number;
   changesPerHour: number;
   isBundled: number;
+  areFewMixedCommits: number;
 };
 
 export type MetricThresholds = {

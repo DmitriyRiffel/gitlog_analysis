@@ -7,6 +7,7 @@ import {
   printCommitsTable,
   printCriteriaTable,
   exportToExcel,
+  exportRepoCommitsTableToExcel,
 } from "./reporting";
 import { AuthorAggregation, ExcelExportData } from "./types";
 import {
@@ -16,7 +17,7 @@ import {
 } from "./utils";
 
 async function main() {
-  const repoName = "sample1";
+  const repoName = "sample5";
 
   const cli = await askCliInput(repoName);
 
@@ -53,6 +54,7 @@ async function main() {
       repo,
       cli.skipFirstCommit,
     );
+    const repoDisplayName = repo.split("/").pop() || "repo";
     const nonTesttotalCommits = commitsWithDiff.filter(
       (c) => c.totalSourceChanges > 0 || c.totalCommentChanges > 0,
     ).length;
@@ -67,6 +69,12 @@ async function main() {
     totalCommitssPerRepo.push(nonTesttotalCommits);
     mergeAuthorMaps(students, authors);
     printCommitsTable(commitsWithDiff, cli.skipFirstCommit);
+    await exportRepoCommitsTableToExcel(
+      repoDisplayName,
+      commitsWithDiff,
+      cli.skipFirstCommit,
+      `${repo}/commits_table.xlsx`,
+    );
     console.log("Durschnittliche Anzahl von Änderungen pro Stunde", calculateAvaregeChangesPerHourOverSessions(sessions, cli.skipFirstCommit));
     console.table(
       sessions.map((s) => ({
@@ -82,7 +90,6 @@ async function main() {
 
     // Prompt: ich gebe mehrere tabellen in terminal aus. Wie könnte ich das ganze irgendwie in einer Excel-Datei exportieren / speichern mit hilfe von exceljs?
     // Daten für Excel sammeln
-    const repoDisplayName = repo.split('/').pop() || `repo_${idx}`;
     excelData.commits.push({
       repoName: repoDisplayName,
       data: commitsWithDiff,
