@@ -112,15 +112,10 @@ async function main() {
   const thresholds = calculateMetricThresholds(
     students,
     cli.commitThreshold,
-    1,
+    cli.changesThresholdMultiplier,
   );
 
-  const criteriaRows = buildCriteriaRows(
-    students,
-    thresholds,
-    cli.skipFirstCommit,
-    cli.deadline,
-  );
+  const criteriaRows = buildCriteriaRows(students, thresholds, cli.deadline);
 
   console.log("\n=== Schwellwerte ===");
   console.log("Commits:", thresholds.totalCommits);

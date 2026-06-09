@@ -39,7 +39,7 @@ export function printCommitsTable(
 ) {
   const filteredCommits = skipFirstCommit ? commits.slice(1) : commits;
   console.table(
-    commits.map((c) => ({
+    filteredCommits.map((c) => ({
       hash: c.hash.slice(0, 10),
       author: c.author,
       subject: c.subject,
@@ -67,7 +67,6 @@ export function printCommitsTable(
 export function buildCriteriaRows(
   authors: Map<string, AuthorAggregation>,
   thresholds: MetricThresholds,
-  skipFirstCommit: boolean,
   deadline = new Date("2024-04-28T23:59:00"),
 ): CriteriaRow[] {
   return [...authors.values()].map((a) => {

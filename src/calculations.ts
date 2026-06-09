@@ -53,7 +53,7 @@ export function calculateUpperMadThreshold(
 export function calculateMetricThresholds(
   students: Map<string, AuthorAggregation>,
   commitThreshold: number,
-  k: number = 2,
+  k: number,
 ): MetricThresholds {
   const authorsArray = Array.from(students.values());
 
