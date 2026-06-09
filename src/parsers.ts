@@ -7,11 +7,13 @@
 export function splitCommitLinePipe(
   line: string,
 ): [string, string, string, string, string] {
+  // commits.csv ist mit | getrennt, weil Commit-Nachrichten Kommas enthalten koennen.
   const parts = line.split("|");
   const hash = (parts[0] ?? "").trim();
   const author = (parts[1] ?? "").trim();
   const email = (parts[2] ?? "").trim();
   const date = (parts[3] ?? "").trim();
+  // Falls der Commit-Betreff selbst ein | enthaelt, wird der Rest wieder zusammengesetzt.
   const subject = parts.slice(4).join("|").trim();
   return [hash, author, email, date, subject];
 }
@@ -30,6 +32,8 @@ export function parseFileStatLine(line: string): {
   commentInsertions: number;
   commentDeletions: number;
 } | null {
+  // Erwartetes Format:
+  // hash|file|sourceInsertions|sourceDeletions|commentInsertions|commentDeletions
   const parts = line.split("|");
   if (parts.length < 4) return null;
 
@@ -46,6 +50,7 @@ export function parseFileStatLine(line: string): {
   const commentInsertions = Number(commentInsertionsStr);
   const commentDeletions = Number(commentDeletionsStr);
 
+  // Ungueltige oder unvollstaendige Zeilen werden verworfen.
   if (!/^[0-9a-f]{40}$/i.test(hash)) return null;
   if (!file) return null;
   if (
@@ -75,6 +80,7 @@ export function parseNumstat(text: string): { hash: string; file: string }[] {
   const commitFiles: { hash: string; file: string }[] = [];
   let currentHash: string | null = null;
 
+  // Die Ausgabe wird zeilenweise gelesen; COMMIT:-Zeilen setzen den aktuellen Commit.
   for (const line of text.split("\n")) {
     if (line.startsWith("COMMIT:")) {
       currentHash = line.slice("COMMIT:".length).trim();
@@ -82,8 +88,10 @@ export function parseNumstat(text: string): { hash: string; file: string }[] {
     }
     if (!line.trim() || !currentHash) continue;
 
+    // numstat-Zeilen bestehen aus: insertions<TAB>deletions<TAB>file.
     const parts = line.split("\t");
     if (parts.length < 3) continue;
+    // Dateinamen koennen theoretisch Tabs enthalten, daher wird alles ab Spalte 3 verbunden.
     const file = parts.slice(2).join("\t").trim();
     if (file) commitFiles.push({ hash: currentHash, file });
   }

@@ -11,9 +11,11 @@ import { runGit } from "./export_git_logs";
 
 export async function existsDir(p: string): Promise<boolean> {
   try {
+    // Prueft, ob der Pfad existiert und wirklich ein Ordner ist.
     const st = await fs.promises.stat(p);
     return st.isDirectory();
   } catch {
+    // Nicht vorhandene oder nicht lesbare Pfade werden wie "kein Ordner" behandelt.
     return false;
   }
 }
@@ -22,6 +24,7 @@ export async function findGitRepos(rootDir: string): Promise<string[]> {
   const repos: string[] = [];
 
   async function walk(dir: string): Promise<void> {
+    // Ein Ordner mit .git wird als Repository erkannt; tiefer muss dann nicht gesucht werden.
     if (await existsDir(path.join(dir, ".git"))) {
       repos.push(dir);
       return;
@@ -36,6 +39,7 @@ export async function findGitRepos(rootDir: string): Promise<string[]> {
 
     for (const e of entries) {
       if (!e.isDirectory()) continue;
+      // Grosse bzw. interne Ordner werden ausgelassen, damit die Suche schnell bleibt.
       if (e.name === "node_modules" || e.name === ".git") continue;
       await walk(path.join(dir, e.name));
     }
@@ -44,13 +48,14 @@ export async function findGitRepos(rootDir: string): Promise<string[]> {
   await walk(rootDir);
   return repos;
 }
-
 /** Anfangsprompt: Wie könnte man eine Textdatei einlesen, in einzelne Zeilen aufteilen, Leerzeichen bereinigen und leere Zeilen entfernen
  */
+/** Liest eine Textdatei zeilenweise ein und entfernt Leerzeilen. */
 export async function readLines(filePath: string): Promise<string[]> {
   return (
     fs
-      /**ist Asynchrone Funktion liest aber Files synchron */
+      // Die Datei wird synchron gelesen; async bleibt die Funktion,
+      // damit sie wie andere Datei-Hilfsfunktionen mit await nutzbar ist.
       .readFileSync(filePath, { encoding: "utf8" })
       .split(/\r?\n/)
       .map((l) => l.trim())
@@ -62,12 +67,14 @@ export function getDayAndTimeFromDate(date: Date): {
   day: string;
   time: string;
 } {
+  // Formatiert Datum und Uhrzeit im deutschen Format fuer die Ausgabe.
   const day = date.toLocaleDateString("de-DE");
   const time = date.toLocaleTimeString("de-DE", { hour12: false });
   return { day, time };
 }
 
 export function shouldIgnoreFile(file: string): boolean {
+  // Konfigurationsdateien werden aus der Code-Analyse herausgefiltert.
   if (file.endsWith(".json")) return true;
   if (file.endsWith(".yml")) return true;
 
@@ -76,6 +83,7 @@ export function shouldIgnoreFile(file: string): boolean {
 
 export function isTestFile(file: string): boolean {
   return (
+    // Erkennt typische Test-Ordner und Test-Dateiendungen.
     file.includes("/tests/") ||
     file.includes("/test/") ||
     file.includes("/__tests__/") ||
@@ -93,18 +101,21 @@ export function mergeAuthorMaps(
   for (const [author, agg] of from.entries()) {
     const prev = into.get(author);
     if (!prev) {
+      // Neue Autoren werden als Kopie eingefuegt, damit die Ursprungs-Map
+      // nicht versehentlich mitgeaendert wird.
       into.set(author, { ...agg });
       continue;
     }
   }
 }
 
-/** Bereitsgestellt von Prof. Dr. Jens von Pilgrim */
+/** Bereitgestellt von Prof. Dr. Jens von Pilgrim. */
 const CLONE_DATE_REGEX = /HEAD@\{(\d{2})\.(\d{2})\.(\d{2})\. (\d{2}):(\d{2})\}/;
 
 export function extractAndFormatCloneDate(
   reflogOutput: string,
 ): Date | undefined {
+  // Sucht im Reflog nach einem Datum im Format TT.MM.JJ. HH:MM.
   const match = reflogOutput.match(CLONE_DATE_REGEX);
   if (!match) return undefined;
 
@@ -119,10 +130,12 @@ export function extractAndFormatCloneDate(
     0,
   );
 
+  // Ungueltige Datumswerte werden als undefined zurueckgegeben.
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
 export async function getCloneDate(repoDir: string): Promise<Date | undefined> {
+  // Der Git-Reflog enthaelt lokale HEAD-Eintraege; daraus wird das Klondatum gelesen.
   const reflog = await runGit(
     ["reflog", "show", "--date=format:%d.%m.%y. %H:%M"],
     repoDir,
@@ -144,6 +157,8 @@ export async function getCloneDate(repoDir: string): Promise<Date | undefined> {
 }
 
 export function earlierDate(firstCommitDate: Date, cloneDate?: Date) {
+  // Fuer den Analysebeginn wird das fruehere Datum verwendet:
+  // entweder erster Commit oder lokales Klondatum.
   if (!cloneDate) return firstCommitDate;
   if (cloneDate > firstCommitDate) return firstCommitDate;
   else return cloneDate;
@@ -152,15 +167,19 @@ export function earlierDate(firstCommitDate: Date, cloneDate?: Date) {
 export function determineCommitTypeFromCommit(
   commit: CommitWithDiff,
 ): CommitType {
+  // Ohne Aenderungen kann kein Schwerpunkt erkannt werden.
   if (commit.totalChanges === 0) {
     return CommitType.MIXED;
   }
 
+  // Die absoluten Aenderungen werden in Prozentanteile umgerechnet.
   const sourcePercent = (commit.totalSourceChanges / commit.totalChanges) * 100;
   const testPercent = (commit.totalTestChanges / commit.totalChanges) * 100;
   const commentPercent =
     (commit.totalCommentChanges / commit.totalChanges) * 100;
 
+  // Die Regeln definieren Prozentbereiche fuer Source-, Test-, Kommentar-
+  // und Mixed-Commits. Die erste passende Regel bestimmt den Typ.
   const commitTypes: CommitType[] = [
     CommitType.SOURCE,
     CommitType.TEST,
@@ -190,6 +209,7 @@ export function determineCommitTypeFromChanges(
   totalTestChanges: number,
   totalCommentChanges: number,
 ): CommitType {
+  // Gleiche Logik wie oben, aber fuer bereits aggregierte Zahlenwerte.
   if (totalChanges === 0) {
     return CommitType.MIXED;
   }
@@ -219,6 +239,7 @@ export function determineCommitTypeFromChanges(
 }
 
 export function calculatePercent(total: number, part: number) {
+  // Gibt den Anteil mit zwei Nachkommastellen als String zurueck.
   return ((part / total) * 100).toFixed(2);
 }
 
@@ -228,21 +249,27 @@ export function exportCsv(tableRows: Record<string, any>[], filename: string) {
   /* https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/keys
   https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
   */
+  // Die Spaltennamen werden aus der ersten Tabellenzeile erzeugt.
   const header = Object.keys(tableRows[0]).join(",");
 
   const lines = tableRows.map((row) =>
     Object.values(row)
       /* https://stackoverflow.com/questions/769621/dealing-with-commas-in-a-csv-file */
+      // Werte werden in Anfuehrungszeichen gesetzt, damit Kommas im Inhalt
+      // nicht als neue CSV-Spalten interpretiert werden.
       .map((v) => `"${String(v)}"`)
       .join(","),
   );
 
   const csv = [header, ...lines].join("\n");
   /* https://nodejs.org/api/fs.html#fswritefilesyncfile-data-options */
+  // Schreibt die fertige CSV-Datei mit UTF-8-Kodierung.
   fs.writeFileSync(filename, csv, "utf8");
 }
 
 export function calculateCommitBundling(commits: CommitWithDiff[]) {
+  // Bundling beschreibt, wie stark die Aenderungen in einem einzelnen Commit
+  // gebuendelt sind: groesster Commit geteilt durch alle Aenderungen.
   const totals = commits.map((c) => c.totalChanges);
 
   const totalChanges = totals.reduce((a, b) => a + b, 0);
@@ -257,6 +284,8 @@ export function calculateAverageChangesPerHourOverSessions(
   sessions: Session[],
   skipFirstCommit: boolean,
 ) {
+  // Optional wird die erste Session uebersprungen, weil sie oft durch den
+  // initialen Commit oder das Klondatum verzerrt sein kann.
   let amountOfSessions = 0;
   let changes = 0;
   if (skipFirstCommit) {
