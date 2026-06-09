@@ -7,10 +7,10 @@ export async function askCliInput(repoName: string): Promise<CliInput> {
 
   /** Only for Development */
   // For windows:
-  const DEFAULT_REPO: string = `F:/Hochschule/Bachelor/BA/${repoName}`;
+  // const DEFAULT_REPO: string = `F:/Hochschule/Bachelor/BA/${repoName}`;
 
   // For mac:
-  // const DEFAULT_REPO: string = `/Volumes/ExterneSSD/Bachelor/${repoName}`;
+  const DEFAULT_REPO: string = `/Users/dimariffel/Documents/Studium/Bachelor/Abschlussarbeit/${repoName}`;
 
   let DEFAULT_DEADLINE: string;
   switch (DEFAULT_REPO) {
