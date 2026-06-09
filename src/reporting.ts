@@ -24,6 +24,7 @@ import {
 import ExcelJS from "exceljs";
 
 const myWeights: MetricWeights = {
+  // Gewichtung der einzelnen Auffaelligkeiten fuer den finalen Index.
   areFewChanges: 0.15,
   areFewChangesInTests: 0.1,
   areFewCommits: 0.2,
@@ -37,8 +38,11 @@ export function printCommitsTable(
   commits: CommitWithDiff[],
   skipFirstCommit: boolean,
 ) {
+  // Optional wird der erste Commit ausgelassen, weil er oft nur Projektstart
+  // oder Grundgeruest enthaelt und die Auswertung verzerren kann.
   const filteredCommits = skipFirstCommit ? commits.slice(1) : commits;
   console.table(
+    // Fuer die Konsolenausgabe werden nur lesbare Kurzwerte angezeigt.
     filteredCommits.map((c) => ({
       hash: c.hash.slice(0, 10),
       author: c.author,
@@ -61,6 +65,7 @@ export function printCommitsTable(
       changes_hour: Number(c.changesPerHour.toFixed(2)),
     })),
   );
+  // Bundling zeigt, wie stark Aenderungen in wenigen grossen Commits gesammelt sind.
   console.log("Bundling: ", calculateCommitBundling(filteredCommits));
 }
 
@@ -69,7 +74,9 @@ export function buildCriteriaRows(
   thresholds: MetricThresholds,
   deadline = new Date("2024-04-28T23:59:00"),
 ): CriteriaRow[] {
+  // Aus den aggregierten Autorendaten werden Zeilen fuer die Kriterien-Tabelle gebaut.
   return [...authors.values()].map((a) => {
+    // Als Startdatum zaehlt das fruehere Datum aus erstem Commit und Klondatum.
     const startDate = earlierDate(a.firstCommitDate, a.cloneDate);
     return {
       author: a.author,
@@ -111,6 +118,7 @@ export function buildCriteriaRows(
 
 function formatWithPercent(total: number, value: number): string {
   // return `${value} (${calculatePercent(total, value)} %)`;
+  // Ausgabeformat fuer Tabellen: erst Prozentwert, dann absoluter Wert.
   return `${calculatePercent(total, value)} % (${value})`;
 }
 
@@ -121,6 +129,7 @@ export function printCriteriaTable(
   plannedHours: number,
   repoName: string,
 ) {
+  // Baut die reine Darstellungsform fuer console.table und CSV-Export.
   const tableRows = rows.map((row) => ({
     author: row.author,
     total_commits: `${row.totalCommits}`,
@@ -168,6 +177,7 @@ export function printCriteriaTable(
   }));
 
   console.table(tableRows);
+  // Speichert dieselbe Kriterien-Tabelle zusaetzlich als CSV-Datei.
   exportCsv(tableRows, `criteriaTable_${repoName}.csv`);
 }
 
@@ -179,6 +189,7 @@ export async function exportToExcel(
   data: ExcelExportData,
   filename: string,
 ): Promise<void> {
+  // Erstellt eine neue Excel-Arbeitsmappe mit allen Auswertungstabellen.
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "GitLog Analysis";
   workbook.created = new Date();
@@ -203,6 +214,7 @@ export async function exportRepoCommitsTableToExcel(
   skipFirstCommit: boolean,
   filename: string,
 ): Promise<void> {
+  // Variante fuer den Export nur einer Commit-Tabelle eines einzelnen Repositories.
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "GitLog Analysis";
   workbook.created = new Date();
@@ -226,6 +238,7 @@ function addCriteriaSheet(
 ): void {
   const sheet = workbook.addWorksheet("Kriterien-Übersicht");
 
+  // Dieses Sheet fasst pro Autor die wichtigsten Kriterien und Auffaelligkeiten zusammen.
   // Header
   sheet.columns = [
     { header: "Autor", key: "author", width: 20 },
@@ -259,6 +272,7 @@ function addCriteriaSheet(
 
   // Daten hinzufügen
   data.rows.forEach((row) => {
+    // Jede CriteriaRow wird in eine Excel-Zeile mit formatierten Prozentwerten umgewandelt.
     const newRow = sheet.addRow({
       author: row.author,
       total_commits: row.totalCommits,
@@ -318,6 +332,8 @@ function addCriteriaSheet(
       fgColor: { argb: "FFFF6B6B" },
     };
 
+    // Die folgenden Bedingungen markieren genau die Kennzahlen rot,
+    // die auch fuer den Auffaelligkeitsindex relevant sind.
     // Zu wenige Commits
     if (row.areFewCommits) {
       newRow.getCell("total_commits").fill = redFill;
@@ -355,6 +371,8 @@ function addCriteriaSheet(
       newRow.getCell("avg_changes").fill = redFill;
     }
 
+    // Wenig Mixed Commits kann darauf hindeuten, dass Arbeit stark getrennt
+    // oder nur in bestimmten Bereichen geleistet wurde.
     if (row.totalMixedCommits / row.totalCommits <= 0.5) {
       newRow.getCell("mixed_commits").fill = redFill;
     }
@@ -387,6 +405,7 @@ function addAllSessionsSheet(
 ): void {
   const sheet = workbook.addWorksheet(sheetName);
 
+  // Dieses Sheet enthaelt alle Sessions aus allen Repositories in einer Tabelle.
   // Header
   sheet.columns = [
     { header: "Repository", key: "repository", width: 25 },
@@ -409,6 +428,7 @@ function addAllSessionsSheet(
 
   // Daten hinzufügen mit Repository-Trennung
   sessionsByRepo.forEach((sessionData, index) => {
+    // Jede Session bekommt den Repository-Namen, damit sie spaeter zuordenbar bleibt.
     sessionData.data.forEach((s) => {
       sheet.addRow({
         repository: sessionData.repoName,
@@ -445,6 +465,7 @@ function addAllCommitsSheet(
 ): void {
   const sheet = workbook.addWorksheet(sheetName);
 
+  // Dieses Sheet enthaelt alle Commit-Zeilen mit Code-, Kommentar- und Testaenderungen.
   // Header
   sheet.columns = [
     { header: "Repository", key: "repository", width: 25 },
@@ -480,6 +501,7 @@ function addAllCommitsSheet(
 
   // Daten hinzufügen mit Repository-Trennung
   commitsByRepo.forEach((commitData, index) => {
+    // Commits werden pro Repository eingetragen; der Hash wird fuer bessere Lesbarkeit gekuerzt.
     commitData.data.forEach((c) => {
       sheet.addRow({
         repository: commitData.repoName,
@@ -505,6 +527,7 @@ function addAllCommitsSheet(
       });
     });
 
+    // Leerzeilen trennen die Repository-Bloecke optisch voneinander.
     sheet.addRow({});
 
     if (index < commitsByRepo.length - 1) {
