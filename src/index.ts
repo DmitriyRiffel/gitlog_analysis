@@ -11,7 +11,7 @@ import {
 } from "./reporting";
 import { AuthorAggregation, ExcelExportData } from "./types";
 import {
-  calculateAvaregeChangesPerHourOverSessions,
+  calculateAverageChangesPerHourOverSessions,
   findGitRepos,
   mergeAuthorMaps,
 } from "./utils";
@@ -81,7 +81,7 @@ async function main() {
     );
     console.log(
       "Durschnittliche Anzahl von Änderungen pro Stunde",
-      calculateAvaregeChangesPerHourOverSessions(sessions, cli.skipFirstCommit),
+      calculateAverageChangesPerHourOverSessions(sessions, cli.skipFirstCommit),
     );
     console.table(
       sessions.map((s) => ({

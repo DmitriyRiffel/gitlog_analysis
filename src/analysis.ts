@@ -9,7 +9,7 @@ import {
   ZERO_STATS,
 } from "./types";
 import {
-  calculateAvaregeChangesPerHourOverSessions,
+  calculateAverageChangesPerHourOverSessions,
   calculateCommitBundling,
   determineCommitTypeFromChanges,
   determineCommitTypeFromCommit,
@@ -243,7 +243,7 @@ function aggregateAuthors(
       totalCommits: 0,
       bundling_coeff: 0,
       sessions: sessionsByAuthor.get(author) ?? [],
-      avaregeChangesPerHourOverSessions: 0,
+      averageChangesPerHourOverSessions: 0,
     };
     map.set(author, fresh);
     return fresh;
@@ -306,10 +306,10 @@ function aggregateAuthors(
     }
   }
 
-  // Berechne avaregeChangesPerHourOverSessions für jeden Author
+  // Berechne averageChangesPerHourOverSessions für jeden Author
   for (const author of map.values()) {
-    author.avaregeChangesPerHourOverSessions =
-      calculateAvaregeChangesPerHourOverSessions(
+    author.averageChangesPerHourOverSessions =
+      calculateAverageChangesPerHourOverSessions(
         author.sessions,
         skipFirstCommit,
       );

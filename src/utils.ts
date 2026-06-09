@@ -4,7 +4,6 @@ import {
   AuthorAggregation,
   COMMIT_TYPE_RULES,
   CommitType,
-  CommitTypeRule,
   CommitWithDiff,
   Session,
 } from "./types";
@@ -49,11 +48,14 @@ export async function findGitRepos(rootDir: string): Promise<string[]> {
 /** Anfangsprompt: Wie könnte man eine Textdatei einlesen, in einzelne Zeilen aufteilen, Leerzeichen bereinigen und leere Zeilen entfernen
  */
 export async function readLines(filePath: string): Promise<string[]> {
-  return fs
-    .readFileSync(filePath, { encoding: "utf8" })
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
+  return (
+    fs
+      /**ist Asynchrone Funktion liest aber Files synchron */
+      .readFileSync(filePath, { encoding: "utf8" })
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
+  );
 }
 
 export function getDayAndTimeFromDate(date: Date): {
@@ -251,7 +253,7 @@ export function calculateCommitBundling(commits: CommitWithDiff[]) {
   return Number((Math.round(bundling * 100) / 100).toFixed(2));
 }
 
-export function calculateAvaregeChangesPerHourOverSessions(
+export function calculateAverageChangesPerHourOverSessions(
   sessions: Session[],
   skipFirstCommit: boolean,
 ) {

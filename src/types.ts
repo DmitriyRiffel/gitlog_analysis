@@ -87,7 +87,7 @@ export type AuthorAggregation = {
 
   bundling_coeff: number;
 
-  avaregeChangesPerHourOverSessions: number;
+  averageChangesPerHourOverSessions: number;
 };
 
 export type CriteriaRow = {
@@ -112,14 +112,23 @@ export type CriteriaRow = {
   firstCommitOnDeadline: boolean;
   bundling_coeff: number;
   isBundled: boolean;
-  avaregeChangesPerHourOverSessions: number;
+  averageChangesPerHourOverSessions: number;
 };
 
 // Excel Export Funktionalität
 export type ExcelExportData = {
-  commits: { repoName: string; data: CommitWithDiff[]; skipFirstCommit: boolean }[];
+  commits: {
+    repoName: string;
+    data: CommitWithDiff[];
+    skipFirstCommit: boolean;
+  }[];
   sessions: { repoName: string; data: Session[] }[];
-  criteria: { rows: CriteriaRow[]; deadline: Date; plannedHours: number; thresholds: MetricThresholds };
+  criteria: {
+    rows: CriteriaRow[];
+    deadline: Date;
+    plannedHours: number;
+    thresholds: MetricThresholds;
+  };
 };
 
 export type Session = Stats & {
@@ -133,7 +142,6 @@ export type Session = Stats & {
 };
 
 export type MetricWeights = {
-  firstCommitOnDeadline: number;
   areFewChanges: number;
   areFewChangesInTests: number;
   areFewCommits: number;

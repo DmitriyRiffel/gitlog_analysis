@@ -73,7 +73,7 @@ export function calculateMetricThresholds(
 
   // Average Changes Per Hour (obere Grenze)
   const authorAvgChangesPerHour = authorsArray.map(
-    (a) => a.avaregeChangesPerHourOverSessions,
+    (a) => a.averageChangesPerHourOverSessions,
   );
   const thresholdAvgChangesPerHour = calculateUpperMadThreshold(
     authorAvgChangesPerHour,
@@ -84,6 +84,7 @@ export function calculateMetricThresholds(
   const authorsBundlingWithEnoughCommits = authorsArray
     .filter((a) => a.totalCommits >= commitThreshold)
     .map((a) => a.bundling_coeff);
+
   const thresholdBundling =
     authorsBundlingWithEnoughCommits.length > 0
       ? calculateUpperMadThreshold(authorsBundlingWithEnoughCommits, k)
@@ -119,13 +120,12 @@ export function calculateIndex(
 ): number {
   let index: number = 0;
 
-  if (row.firstCommitOnDeadline) index += manualWeights.firstCommitOnDeadline;
   if (row.areFewChanges) index += manualWeights.areFewChanges;
   if (row.areFewChangesInTests) index += manualWeights.areFewChangesInTests;
   if (row.areFewCommits) index += manualWeights.areFewCommits;
   if (isTooLateFirstCommit(row.startDate, deadline, plannedHours))
     index += manualWeights.isTooLateFirstCommit;
-  if (row.avaregeChangesPerHourOverSessions >= thresholds.avgChangesPerHour)
+  if (row.averageChangesPerHourOverSessions >= thresholds.avgChangesPerHour)
     index += manualWeights.changesPerHour;
   if (row.isBundled) index += manualWeights.isBundled;
   if (row.areFewMixedCommits) index += manualWeights.areFewMixedCommits;

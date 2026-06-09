@@ -24,7 +24,6 @@ import {
 import ExcelJS from "exceljs";
 
 const myWeights: MetricWeights = {
-  firstCommitOnDeadline: 0,
   areFewChanges: 0.15,
   areFewChangesInTests: 0.1,
   areFewCommits: 0.2,
@@ -106,7 +105,7 @@ export function buildCriteriaRows(
       isBundled:
         a.totalCommits >= thresholds.totalCommits &&
         a.bundling_coeff >= thresholds.bundling,
-      avaregeChangesPerHourOverSessions: a.avaregeChangesPerHourOverSessions,
+      averageChangesPerHourOverSessions: a.averageChangesPerHourOverSessions,
     };
   });
 }
@@ -164,7 +163,7 @@ export function printCriteriaTable(
     "avg_commits*": row.averageCommitsPerSession,
 
     /** Average changes per hour over the sessions */
-    avg_changes: row.avaregeChangesPerHourOverSessions,
+    avg_changes: row.averageChangesPerHourOverSessions,
 
     index: calculateIndex(row, myWeights, thresholds, deadline, plannedHours),
   }));
@@ -299,7 +298,7 @@ function addCriteriaSheet(
         getDayAndTimeFromDate(data.deadline).time,
       sessions: row.totalSessions,
       avg_commits: row.averageCommitsPerSession,
-      avg_changes: row.avaregeChangesPerHourOverSessions,
+      avg_changes: row.averageChangesPerHourOverSessions,
       // index: calculateIndex(row, weights, data.thresholds, data.deadline, data.plannedHours),
       index: calculateIndex(
         row,
@@ -352,7 +351,7 @@ function addCriteriaSheet(
 
     // Zu hohe Changes pro Stunde
     if (
-      row.avaregeChangesPerHourOverSessions >= data.thresholds.avgChangesPerHour
+      row.averageChangesPerHourOverSessions >= data.thresholds.avgChangesPerHour
     ) {
       newRow.getCell("avg_changes").fill = redFill;
     }

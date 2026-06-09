@@ -7,26 +7,26 @@ export async function askCliInput(repoName: string): Promise<CliInput> {
 
   /** Only for Development */
   // For windows:
-  const DEFAULT_REPO: string = `F:/Hochschule/BA/${repoName}`;
+  const DEFAULT_REPO: string = `F:/Hochschule/Bachelor/BA/${repoName}`;
 
   // For mac:
   // const DEFAULT_REPO: string = `/Volumes/ExterneSSD/Bachelor/${repoName}`;
 
   let DEFAULT_DEADLINE: string;
   switch (DEFAULT_REPO) {
-    case "F:/Hochschule/BA/sample1":
+    case "F:/Hochschule/Bachelor/BA/sample1":
       DEFAULT_DEADLINE = "2024-04-28";
       break;
-    case "F:/Hochschule/BA/sample2":
+    case "F:/Hochschule/Bachelor/BA/sample2":
       DEFAULT_DEADLINE = "2023-06-04";
       break;
-    case "F:/Hochschule/BA/sample3":
+    case "F:/Hochschule/Bachelor/BA/sample3":
       DEFAULT_DEADLINE = "2024-06-02";
       break;
-    case "F:/Hochschule/BA/sample4":
+    case "F:/Hochschule/Bachelor/BA/sample4":
       DEFAULT_DEADLINE = "2025-05-11";
       break;
-    case "F:/Hochschule/BA/sample5":
+    case "F:/Hochschule/Bachelor/BA/sample5":
       DEFAULT_DEADLINE = "2025-06-08";
       break;
     case "/Volumes/ExterneSSD/Bachelor/sample1":
