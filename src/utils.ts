@@ -9,6 +9,7 @@ import {
 } from "./types";
 import { runGit } from "./export_git_logs";
 
+/* Die Funktion prueft, ob ein Pfad existiert und ein Ordner ist. */
 export async function existsDir(p: string): Promise<boolean> {
   try {
     // Prueft, ob der Pfad existiert und wirklich ein Ordner ist.
@@ -20,6 +21,7 @@ export async function existsDir(p: string): Promise<boolean> {
   }
 }
 
+/* Die Funktion sucht rekursiv nach Git-Repositories unterhalb eines Startordners. */
 export async function findGitRepos(rootDir: string): Promise<string[]> {
   const repos: string[] = [];
 
@@ -63,6 +65,7 @@ export async function readLines(filePath: string): Promise<string[]> {
   );
 }
 
+/* Die Funktion trennt ein Datum in deutschen Tages- und Zeit-String auf. */
 export function getDayAndTimeFromDate(date: Date): {
   day: string;
   time: string;
@@ -73,6 +76,7 @@ export function getDayAndTimeFromDate(date: Date): {
   return { day, time };
 }
 
+/* Die Funktion entscheidet, ob eine Datei bei der Analyse ignoriert werden soll. */
 export function shouldIgnoreFile(file: string): boolean {
   // Konfigurationsdateien werden aus der Code-Analyse herausgefiltert.
   if (file.endsWith(".json")) return true;
@@ -81,6 +85,7 @@ export function shouldIgnoreFile(file: string): boolean {
   return false;
 }
 
+/* Die Funktion prueft, ob ein Dateipfad zu einer Testdatei gehoert. */
 export function isTestFile(file: string): boolean {
   return (
     // Erkennt typische Test-Ordner und Test-Dateiendungen.
@@ -94,6 +99,7 @@ export function isTestFile(file: string): boolean {
   );
 }
 
+/* Die Funktion uebernimmt Autor-Aggregationen aus einer Map in eine andere. */
 export function mergeAuthorMaps(
   into: Map<string, AuthorAggregation>,
   from: Map<string, AuthorAggregation>,
@@ -112,6 +118,7 @@ export function mergeAuthorMaps(
 /** Bereitgestellt von Prof. Dr. Jens von Pilgrim. */
 const CLONE_DATE_REGEX = /HEAD@\{(\d{2})\.(\d{2})\.(\d{2})\. (\d{2}):(\d{2})\}/;
 
+/* Die Funktion extrahiert aus einem Git-Reflog-Text das Klondatum als Date-Objekt. */
 export function extractAndFormatCloneDate(
   reflogOutput: string,
 ): Date | undefined {
@@ -134,6 +141,7 @@ export function extractAndFormatCloneDate(
   return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
+/* Die Funktion liest das Klondatum eines Repositories aus dem Git-Reflog. */
 export async function getCloneDate(repoDir: string): Promise<Date | undefined> {
   // Der Git-Reflog enthaelt lokale HEAD-Eintraege; daraus wird das Klondatum gelesen.
   const reflog = await runGit(
@@ -156,6 +164,7 @@ export async function getCloneDate(repoDir: string): Promise<Date | undefined> {
   return dateObj;
 }
 
+/* Die Funktion gibt das fruehere Datum aus erstem Commit und optionalem Klondatum zurueck. */
 export function earlierDate(firstCommitDate: Date, cloneDate?: Date) {
   // Fuer den Analysebeginn wird das fruehere Datum verwendet:
   // entweder erster Commit oder lokales Klondatum.
@@ -164,6 +173,7 @@ export function earlierDate(firstCommitDate: Date, cloneDate?: Date) {
   else return cloneDate;
 }
 
+/* Die Funktion bestimmt den Commit-Typ anhand der Aenderungsanteile eines Commits. */
 export function determineCommitTypeFromCommit(
   commit: CommitWithDiff,
 ): CommitType {
@@ -203,6 +213,7 @@ export function determineCommitTypeFromCommit(
   return CommitType.MIXED;
 }
 
+/* Die Funktion bestimmt den Commit-Typ anhand bereits aggregierter Aenderungszahlen. */
 export function determineCommitTypeFromChanges(
   totalChanges: number,
   totalSourceChanges: number,
@@ -238,11 +249,13 @@ export function determineCommitTypeFromChanges(
   return CommitType.MIXED;
 }
 
+/* Die Funktion berechnet einen Prozentanteil mit zwei Nachkommastellen. */
 export function calculatePercent(total: number, part: number) {
   // Gibt den Anteil mit zwei Nachkommastellen als String zurueck.
   return ((part / total) * 100).toFixed(2);
 }
 
+/* Die Funktion schreibt Tabellenzeilen als CSV-Datei. */
 export function exportCsv(tableRows: Record<string, any>[], filename: string) {
   if (tableRows.length === 0) return;
 
@@ -267,6 +280,7 @@ export function exportCsv(tableRows: Record<string, any>[], filename: string) {
   fs.writeFileSync(filename, csv, "utf8");
 }
 
+/* Die Funktion berechnet, wie stark Aenderungen in einem groessten Commit gebuendelt sind. */
 export function calculateCommitBundling(commits: CommitWithDiff[]) {
   // Bundling beschreibt, wie stark die Aenderungen in einem einzelnen Commit
   // gebuendelt sind: groesster Commit geteilt durch alle Aenderungen.
@@ -280,6 +294,7 @@ export function calculateCommitBundling(commits: CommitWithDiff[]) {
   return Number((Math.round(bundling * 100) / 100).toFixed(2));
 }
 
+/* Die Funktion berechnet den Durchschnitt der Aenderungen pro Stunde ueber Sessions. */
 export function calculateAverageChangesPerHourOverSessions(
   sessions: Session[],
   skipFirstCommit: boolean,

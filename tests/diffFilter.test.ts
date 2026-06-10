@@ -1,8 +1,4 @@
-import {
-  countAddedLines,
-  countRemovedLines,
-  countCodeChanges,
-} from "../src/git_logs";
+import { countCodeChanges } from "../src/git_logs";
 
 describe("Testing filter by extracting the gitlogs", () => {
   test("ignores whitespace-only added lines", () => {

@@ -20,6 +20,7 @@ import {
 } from "./utils";
 
 /** Anfangsprompt: Wie könnte man Commit-Daten aus einer CSV-Datei bereinigen, filtern und konsolidieren, bevor man sie strukturiert weiterverwendet? */
+/* Die Funktion liest Commit-Daten aus der CSV und vereinheitlicht die Autorennamen. */
 async function createCSV(repo: string): Promise<Commit[]> {
   /** Read commit metadata lines and skip CSV header row */
   const commitLines = (await readLines(repo + "/commits.csv")).slice(1);
@@ -51,6 +52,7 @@ async function createCSV(repo: string): Promise<Commit[]> {
   }));
 }
 
+/* Die Funktion baut aus der Statistik-CSV eine Map mit aggregierten Werten pro Commit-Hash. */
 export async function buildStatsByHash(
   repo: string,
 ): Promise<Map<string, Stats>> {
@@ -126,6 +128,7 @@ export async function buildStatsByHash(
   return statsByHash;
 }
 
+/* Die Funktion verbindet Commit-Metadaten mit Diff-Statistiken und berechnet Zeitabstaende. */
 export function buildCommitsWithDiff(
   commits: Commit[],
   statsByHash: Map<string, Stats>,
@@ -205,6 +208,7 @@ export function buildCommitsWithDiff(
   return rows;
 }
 
+/* Die Funktion fasst alle Commit- und Session-Werte pro Autor zusammen. */
 function aggregateAuthors(
   commits: CommitWithDiff[],
   sessions: Session[],
@@ -215,6 +219,7 @@ function aggregateAuthors(
   const firstCommitSkipped = new Map<string, boolean>();
   const commitsByAuthor = new Map<string, CommitWithDiff[]>();
 
+  /* Die Funktion holt eine vorhandene Autor-Aggregation oder legt sie neu an. */
   function getOrCreate(author: string): AuthorAggregation {
     const existing = map.get(author);
     if (existing) return existing;
@@ -318,6 +323,7 @@ function aggregateAuthors(
   return map;
 }
 
+/* Die Funktion fuehrt die komplette Analyse fuer ein einzelnes Repository aus. */
 export async function analyzeRepo(repo: string, skipFirstCommit: boolean) {
   const commits = createCSV(repo);
   const statsByHash = buildStatsByHash(repo);
@@ -337,6 +343,7 @@ export async function analyzeRepo(repo: string, skipFirstCommit: boolean) {
   return { commitsWithDiff, sessions, authors };
 }
 
+/* Die Funktion gruppiert Commits anhand ihres zeitlichen Abstands in Arbeitssessions. */
 function buildSessions(
   commits: CommitWithDiff[],
   maxGapMinutes: number,
@@ -375,6 +382,7 @@ function buildSessions(
   return sessions;
 }
 
+/* Die Funktion erstellt eine neue Session, die mit einem bestimmten Commit beginnt. */
 function newSession(commit: CommitWithDiff, index: number): Session {
   return {
     author: commit.author,
@@ -399,6 +407,7 @@ function newSession(commit: CommitWithDiff, index: number): Session {
   };
 }
 
+/* Die Funktion addiert die Werte eines Commits zu einer bestehenden Session. */
 function addCommit(session: Session, commit: CommitWithDiff) {
   session.endDate = commit.date;
   session.totalCommits += 1;
@@ -413,6 +422,7 @@ function addCommit(session: Session, commit: CommitWithDiff) {
   session.totalChanges += commit.totalChanges;
 }
 
+/* Die Funktion berechnet Abschlusswerte einer Session wie Dauer und Aenderungen pro Stunde. */
 function finalizeSession(session: Session) {
   const duration =
     (session.endDate.getTime() - session.startDate.getTime()) / (1000 * 60);
@@ -427,6 +437,7 @@ function finalizeSession(session: Session) {
   }
 }
 
+/* Die Funktion gruppiert alle Sessions nach Autor. */
 function aggregateSessionsByAuthor(
   sessions: Session[],
 ): Map<string, Session[]> {

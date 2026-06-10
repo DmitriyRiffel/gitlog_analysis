@@ -4,6 +4,7 @@
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/trim
  */
+/* Die Funktion zerlegt eine pipe-getrennte Commit-Zeile in ihre einzelnen Felder. */
 export function splitCommitLinePipe(
   line: string,
 ): [string, string, string, string, string] {
@@ -24,6 +25,7 @@ export function splitCommitLinePipe(
  * - 40-stellige Commit-Hashes / Revisionssyntax: https://git-scm.com/docs/git-rev-parse#_specifying_revisions
  * - Number-Konvertierung in JavaScript: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number
  */
+/* Die Funktion wandelt eine Statistik-Zeile aus der CSV in ein strukturiertes Objekt um. */
 export function parseFileStatLine(line: string): {
   hash: string;
   file: string;
@@ -76,6 +78,7 @@ export function parseFileStatLine(line: string): {
  * - Git --numstat Ausgabe (added TAB deleted TAB path): https://git-scm.com/docs/git-diff#_other_diff_formats
  * - JavaScript split() mit Tab-Trennern: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/split
  */
+/* Die Funktion liest aus einer Git-numstat-Ausgabe alle Commit-Datei-Paare heraus. */
 export function parseNumstat(text: string): { hash: string; file: string }[] {
   const commitFiles: { hash: string; file: string }[] = [];
   let currentHash: string | null = null;

@@ -34,6 +34,7 @@ const myWeights: MetricWeights = {
   isBundled: 0.05,
 };
 
+/* Die Funktion gibt Commit-Daten als Tabelle im Terminal aus. */
 export function printCommitsTable(
   commits: CommitWithDiff[],
   skipFirstCommit: boolean,
@@ -69,6 +70,7 @@ export function printCommitsTable(
   console.log("Bundling: ", calculateCommitBundling(filteredCommits));
 }
 
+/* Die Funktion baut Kriterienzeilen aus den aggregierten Autorendaten. */
 export function buildCriteriaRows(
   authors: Map<string, AuthorAggregation>,
   thresholds: MetricThresholds,
@@ -116,12 +118,14 @@ export function buildCriteriaRows(
   });
 }
 
+/* Die Funktion formatiert einen Wert zusammen mit seinem Prozentanteil. */
 function formatWithPercent(total: number, value: number): string {
   // return `${value} (${calculatePercent(total, value)} %)`;
   // Ausgabeformat fuer Tabellen: erst Prozentwert, dann absoluter Wert.
   return `${calculatePercent(total, value)} % (${value})`;
 }
 
+/* Die Funktion gibt die Kriterien-Tabelle im Terminal aus und exportiert sie als CSV. */
 export function printCriteriaTable(
   rows: CriteriaRow[],
   thresholds: MetricThresholds,
@@ -185,6 +189,7 @@ export function printCriteriaTable(
  * Prompt: Kannst du mir machen, dass alle Schwellenwerte in einer Methode berechnet werden
  * Berechnet alle Schwellwerte für Metriken über alle Autoren/Repos hinweg
  */
+/* Die Funktion exportiert alle Analyse-Ergebnisse in eine Excel-Datei. */
 export async function exportToExcel(
   data: ExcelExportData,
   filename: string,
@@ -208,6 +213,7 @@ export async function exportToExcel(
   console.log(`\n✓ Excel-Datei gespeichert: ${filename}`);
 }
 
+/* Die Funktion exportiert die Commit-Tabelle eines einzelnen Repositories nach Excel. */
 export async function exportRepoCommitsTableToExcel(
   repoName: string,
   commits: CommitWithDiff[],
@@ -227,6 +233,7 @@ export async function exportRepoCommitsTableToExcel(
   console.log(`✓ Repo-Commits-Datei gespeichert: ${filename}`);
 }
 
+/* Die Funktion fuegt der Excel-Datei das Kriterien-Sheet hinzu. */
 function addCriteriaSheet(
   workbook: ExcelJS.Workbook,
   data: {
@@ -398,6 +405,7 @@ function addCriteriaSheet(
   };
 }
 
+/* Die Funktion fuegt der Excel-Datei ein Sheet mit allen Sessions hinzu. */
 function addAllSessionsSheet(
   workbook: ExcelJS.Workbook,
   sheetName: string,
@@ -454,6 +462,7 @@ function addAllSessionsSheet(
   };
 }
 
+/* Die Funktion fuegt der Excel-Datei ein Sheet mit allen Commits hinzu. */
 function addAllCommitsSheet(
   workbook: ExcelJS.Workbook,
   sheetName: string,

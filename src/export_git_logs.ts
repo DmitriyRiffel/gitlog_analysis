@@ -6,6 +6,7 @@ import { parseNumstat } from "./parsers";
 import { existsDir, extractAndFormatCloneDate } from "./utils";
 
 /**https://git-scm.com/docs/git-show */
+/* Die Funktion holt den Git-Diff fuer eine einzelne Datei in einem Commit. */
 async function getFileDiff(
   repoDir: string,
   hash: string,
@@ -23,6 +24,7 @@ async function getFileDiff(
 }
 
 /**Prompt: Wie könnte man in TypeScript einen Git-Befehl aus einem bestimmten Verzeichnis heraus ausführen und das Ergebnis der Ausführung zurückbekommen? */
+/* Die Funktion fuehrt einen Git-Befehl in einem bestimmten Arbeitsordner aus. */
 export function runGit(
   args: string[],
   cwd: string,
@@ -46,6 +48,7 @@ export function runGit(
 }
 
 /**Anfangsprompt: Wie könnte man aus einem Gitordner die Git-Logs extrahieren */
+/* Die Funktion exportiert Commit-Logs und Diff-Statistiken aus einem Git-Repository. */
 export async function getGitLogs(repoDir: string): Promise<boolean> {
   // Nur echte Git-Repositories werden verarbeitet.
   if (!(await existsDir(path.join(repoDir, ".git")))) {
@@ -117,6 +120,7 @@ export async function getGitLogs(repoDir: string): Promise<boolean> {
 }
 
 /** ToDo: Show the error if the path is wrong  */
+/* Die Funktion exportiert Git-Logs fuer mehrere gefundene Repositories. */
 export async function exportGitLogs(repoDirs: string[]) {
   console.log(`Gefundene Repos: ${repoDirs.length}`);
 

@@ -2,6 +2,7 @@ import * as readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { CliInput } from "./types";
 
+/* Die Funktion fragt die Analyse-Einstellungen im Terminal ab und gibt sie gesammelt zurueck. */
 export async function askCliInput(repoName: string): Promise<CliInput> {
   const rl = readline.createInterface({ input, output });
 

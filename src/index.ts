@@ -16,6 +16,7 @@ import {
   mergeAuthorMaps,
 } from "./utils";
 
+/* Die Funktion steuert den kompletten Ablauf: Eingaben lesen, Repos analysieren und Exporte erzeugen. */
 async function main() {
   const repoName = "sample4";
 

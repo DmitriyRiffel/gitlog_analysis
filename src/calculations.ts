@@ -6,6 +6,7 @@ import {
   Session,
 } from "./types";
 
+/* Die Funktion berechnet den Median einer Zahlenliste. */
 function calculateMedian(values: number[]) {
   // Fuer den Median muessen die Werte zuerst numerisch sortiert werden.
   const sorted = [...values].sort((a, b) => a - b);
@@ -20,6 +21,7 @@ function calculateMedian(values: number[]) {
   return (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
+/* Die Funktion berechnet die Median Absolute Deviation einer Zahlenliste. */
 function calculateMad(values: number[]): number {
   // MAD = Median Absolute Deviation: typische Abweichung vom Median.
   const med = calculateMedian(values);
@@ -28,6 +30,7 @@ function calculateMad(values: number[]): number {
   return calculateMedian(deviations);
 }
 
+/* Die Funktion berechnet einen unteren Schwellwert auf Basis von Median und MAD. */
 export function calculateLowerMadThreshold(
   values: number[],
   k: number = 2,
@@ -42,6 +45,7 @@ export function calculateLowerMadThreshold(
   return threshold;
 }
 
+/* Die Funktion berechnet einen oberen Schwellwert auf Basis von Median und MAD. */
 export function calculateUpperMadThreshold(
   values: number[],
   k: number = 2,
@@ -56,6 +60,7 @@ export function calculateUpperMadThreshold(
  * Prompt: Kannst du mir machen, dass alle Schwellenwerte in einer Methode berechnet werden
  * Berechnet alle Schwellwerte für Metriken über alle Autoren/Repos hinweg
  */
+/* Die Funktion berechnet alle Metrik-Schwellwerte fuer die spaetere Bewertung. */
 export function calculateMetricThresholds(
   students: Map<string, AuthorAggregation>,
   commitThreshold: number,
@@ -120,6 +125,7 @@ export function calculateMetricThresholds(
   };
 }
 
+/* Die Funktion berechnet den Auffaelligkeitsindex einer Kriterienzeile. */
 export function calculateIndex(
   row: CriteriaRow,
   manualWeights: MetricWeights,
@@ -144,11 +150,13 @@ export function calculateIndex(
   return Math.min(1.0, Number(index.toFixed(2)));
 }
 
+/* Die Funktion zieht eine bestimmte Anzahl Stunden von einem Datum ab. */
 function subtractHours(d: Date, hours: number): Date {
   // Rechnet Stunden in Millisekunden um und zieht sie vom Datum ab.
   return new Date(d.getTime() - hours * 60 * 60 * 1000);
 }
 
+/* Die Funktion prueft, ob der erste Commit zu nah an der Deadline liegt. */
 export function isTooLateFirstCommit(
   firstCommitAt: Date,
   deadline: Date,
@@ -159,6 +167,7 @@ export function isTooLateFirstCommit(
   return firstCommitAt > subtractHours(deadline, plannedHours);
 }
 
+/* Die Funktion berechnet die durchschnittlichen Aenderungen pro Stunde ueber Sessions. */
 export function calculateAverageChangesPerHour(sessions: Session[]) {
   // Summiert die Aenderungen pro Stunde ueber alle Sessions und bildet den Mittelwert.
   let temp = 0;
@@ -170,6 +179,7 @@ export function calculateAverageChangesPerHour(sessions: Session[]) {
   return temp / counter;
 }
 
+/* Die Funktion berechnet die durchschnittliche Commit-Anzahl pro Session. */
 export function calculateAverageCommitsPerSession(sessions: Session[]) {
   // Berechnet, wie viele Commits durchschnittlich in einer Session gemacht wurden.
   let temp = 0;
